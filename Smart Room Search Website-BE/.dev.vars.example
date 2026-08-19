@@ -1,0 +1,19 @@
+# Copy thành .dev.vars và điền giá trị thật (wrangler dev đọc file này)
+DB_HOST=
+DB_PORT=4000
+DB_NAME=smart_room_db
+DB_USER=
+DB_PASSWORD=
+DB_SSL=true
+DB_SSL_REJECT_UNAUTHORIZED=false
+DB_APPLY_SCHEMA=false
+JWT_SECRET=thay-bang-secret-manh
+CORS_ORIGIN=http://localhost:5173
+# Cloudinary (điền từ dashboard: Settings → API Keys)
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+# TiDB Data Service (tạo Data App trong TiDB Cloud → Data Service)
+TIDB_DATA_SERVICE_URL=
+TIDB_DATA_PUBLIC_KEY=
+TIDB_DATA_PRIVATE_KEY=

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Trọ Xịn</string>
+    <string name="title_activity_main">Smart Room Search</string>
+    <string name="package_name">com.smartroomsearch.app</string>
+    <string name="custom_url_scheme">com.smartroomsearch.app</string>
+</resources>

@@ -1,0 +1,36 @@
+{
+  "name": "smart-room-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Express + MySQL backend for the Smart Room Search platform",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "migrate:db": "node scripts/migrate-to-mysql.js",
+    "dev:worker": "wrangler dev",
+    "deploy:worker": "wrangler deploy"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.1",
+    "dotenv": "^16.4.1",
+    "express": "^4.21.2",
+    "helmet": "^8.0.1",
+    "jsonwebtoken": "^9.0.1",
+    "multer": "^2.2.0",
+    "mysql2": "^3.4.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  },
+  "overrides": {
+    "iconv-lite": "^0.7.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20260811.1": true
+  }
+}

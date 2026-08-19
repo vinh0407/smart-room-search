@@ -1,0 +1,61 @@
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+.env
+.env.*
+!.env.example
+*.log
+*.zip
+release/
+out/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Cloudflare
+.wrangler/
+.dev.vars
+.dev.vars.*
+
+# Logs
+*.log
+logs/
+
+# Build
+dist/
+build/
+coverage/
+
+# Runtime / temporary
+tmp/
+temp/
+
+# Uploads
+uploads/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/

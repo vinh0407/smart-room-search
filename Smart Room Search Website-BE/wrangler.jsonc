@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "smart-room-api",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-08-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "TIDB_DATA_SERVICE_URL": "https://ap-southeast-1.data.tidbcloud.com/api/v1beta/app/dataapp-pnPhCmZV/endpoint",
+    "CORS_ORIGIN": "https://smart-room-search.vercel.app,https://smart-room-admin.vercel.app"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

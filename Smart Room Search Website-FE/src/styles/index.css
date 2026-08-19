@@ -1,0 +1,114 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* ── Global layout safety ───────────────────────────────
+   Prevent long inputs / URLs / unbroken text from breaking the UI */
+html {
+  overflow-wrap: break-word;
+  /* Chặn pull-to-refresh/tự load lại trên mobile khi vuốt xuống */
+  overscroll-behavior-y: contain;
+}
+
+body {
+  word-break: break-word;
+  overscroll-behavior-y: contain;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* ── Safe area (Android WebView / iOS notch + thanh điều hướng) ── */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+input,
+textarea,
+select,
+button {
+  min-width: 0;
+  max-width: 100%;
+}
+
+p,
+h1,
+h2,
+h3,
+h4 {
+  overflow-wrap: break-word;
+}
+
+/* Leaflet room popup */
+.leaflet-popup-content-wrapper.room-map-popup-wrap,
+.room-map-popup-wrap .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.room-map-popup-wrap .leaflet-popup-content {
+  margin: 0;
+  min-width: 200px;
+  max-width: 260px;
+}
+
+.room-map-popup {
+  padding: 12px 14px;
+  font-family: inherit;
+}
+
+.room-map-popup__title {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #111827;
+}
+
+.room-map-popup__price {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ea580c;
+}
+
+.room-map-popup__meta {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.room-map-popup__address {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #9ca3af;
+}
+
+.room-map-popup__btn {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #ea580c;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.room-map-popup__btn:hover {
+  background: #c2410c;
+}
