@@ -205,10 +205,26 @@ export async function tidb(endpointPath, options = {}) {
 
   if (!response.ok) {
     console.error('[TiDB Data Service]', response.status, text.slice(0, 500));
-    const message =
-      response.status === 401
-        ? 'TiDB Data Service authentication failed (kiểm tra API key Public/Private)'
-        : `TiDB Data Service HTTP ${response.status}`;
+    let message;
+    if (response.status === 401) {
+      message =
+        'TiDB Data Service authentication failed (kiểm tra API key Public/Private)';
+    } else if (response.status === 404) {
+      const dsMsg =
+        typeof data?.data?.result?.message === 'string'
+          ? data.data.result.message
+          : '';
+      const pathMatch = dsMsg.match(/request_path:\s*([^,]+),\s*method:\s*([A-Z]+)/);
+      if (pathMatch) {
+        message = `TiDB Data Service: endpoint CHƯA TỒN TẠI — ${pathMatch[2]} ${pathMatch[1]} (tạo endpoint theo TIDB-DATA-SERVICE-SETUP.md, dùng cú pháp {id}/{username})`;
+      } else {
+        message = `TiDB Data Service HTTP ${response.status} (${endpointPath}) — endpoint chưa tồn tại, xem TIDB-DATA-SERVICE-SETUP.md`;
+      }
+    } else if (response.status === 504) {
+      message = `TiDB Data Service timeout (${endpointPath}) — kiểm tra lại SQL endpoint hoặc tăng timeout`;
+    } else {
+      message = `TiDB Data Service HTTP ${response.status}`;
+    }
     throw Object.assign(new Error(message), {
       statusCode: response.status,
       detail: data,
