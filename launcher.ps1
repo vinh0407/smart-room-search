@@ -56,6 +56,16 @@ function Stop-BE {
     }
 }
 
+function Open-App([string]$url) {
+    $edge = @(
+        'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+        'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+        'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($edge) { Start-Process $edge -ArgumentList "--app=$url" }
+    else { Start-Process $url }
+}
+
 function Refresh-Status {
     Set-Status $lblBE    (Port-Active 4000)
     Set-Status $lblAdmin (Port-Active 5173)
@@ -221,7 +231,7 @@ $btnOpenAdmin = New-Object System.Windows.Forms.Button
 $btnOpenAdmin.Text = 'Mo Admin'
 $btnOpenAdmin.Location = New-Object System.Drawing.Point(155, 22)
 $btnOpenAdmin.Size = New-Object System.Drawing.Size(100, 28)
-$btnOpenAdmin.Add_Click({ Start-Process 'http://localhost:5173' })
+$btnOpenAdmin.Add_Click({ Open-App 'http://localhost:5173' })
 $grpApps.Controls.Add($btnOpenAdmin)
 
 $btnFE = New-Object System.Windows.Forms.Button
@@ -239,7 +249,7 @@ $btnOpenFE = New-Object System.Windows.Forms.Button
 $btnOpenFE.Text = 'Mo FE'
 $btnOpenFE.Location = New-Object System.Drawing.Point(405, 22)
 $btnOpenFE.Size = New-Object System.Drawing.Size(100, 28)
-$btnOpenFE.Add_Click({ Start-Process 'http://localhost:5173' })
+$btnOpenFE.Add_Click({ Open-App 'http://localhost:5173' })
 $grpApps.Controls.Add($btnOpenFE)
 
 # Database
