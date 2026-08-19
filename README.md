@@ -1,4 +1,4 @@
-# 🏠 Smart Room Search (Trọ Xịn)
+# Smart Room Search (Trọ Xịn) https://smart-room-search.vercel.app/
 
 > Website + Admin + Android app tìm kiếm và quản lý phòng trọ tại **TP.HCM** — cho người thuê tìm phòng và chủ trọ quản lý phòng/khách thuê.
 
@@ -16,7 +16,7 @@
 
 ---
 
-## 🗺️ Kiến trúc
+## Kiến trúc
 
 ```
 ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
@@ -50,29 +50,29 @@
 | Backend | Node.js Express — `localhost:4000` | Cloudflare Worker — `https://smart-room-api.smart-room-backend.workers.dev` |
 | Database | TiDB Cloud (MySQL) | TiDB Cloud qua **Data Service** |
 
-> ⚡ Trên Cloudflare Workers **không dùng** mysql2 pool trực tiếp — toàn bộ truy cập DB đi qua **TiDB Data Service** (HTTP + Digest auth, tự động fallback Basic → Digest MD5). Khi chạy local Node.js có thể chọn `dbMode`: `mysql` (trực tiếp) hoặc `tidb-data-service`.
+>  Trên Cloudflare Workers **không dùng** mysql2 pool trực tiếp — toàn bộ truy cập DB đi qua **TiDB Data Service** (HTTP + Digest auth, tự động fallback Basic → Digest MD5). Khi chạy local Node.js có thể chọn `dbMode`: `mysql` (trực tiếp) hoặc `tidb-data-service`.
 
 ---
 
 ## ✨ Chức năng
 
-- 🔍 Tìm kiếm & lọc phòng theo quận, giá, diện tích, tiện nghi
-- 🗺️ Xem phòng trên bản đồ (Leaflet)
-- ❤️ Yêu thích & lưu phòng
-- 👥 Đăng nhu cầu tìm phòng
-- 🏠 Quản lý phòng, khách thuê, hợp đồng
-- 💰 Quản lý giá, điện, nước, dịch vụ
-- 📊 Thống kê phòng & doanh thu
-- 🤖 AI tạo mô tả phòng
-- 📍 Geocoding địa chỉ
-- 🖼️ Upload ảnh phòng (Cloudinary)
-- 🔐 Đăng nhập JWT (Admin)
-- 📱 Ứng dụng Android (Capacitor) dùng chung Backend & Database
-- 🩺 Health check `/health`, `/api/health`, `/api/health/db`
+- Tìm kiếm & lọc phòng theo quận, giá, diện tích, tiện nghi
+- Xem phòng trên bản đồ (Leaflet)
+- Yêu thích & lưu phòng
+- Đăng nhu cầu tìm phòng
+- Quản lý phòng, khách thuê, hợp đồng
+- Quản lý giá, điện, nước, dịch vụ
+- Thống kê phòng & doanh thu
+- AI tạo mô tả phòng
+- Geocoding địa chỉ
+- Upload ảnh phòng (Cloudinary)
+- Đăng nhập JWT (Admin)
+- Ứng dụng Android (Capacitor) dùng chung Backend & Database
+- Health check `/health`, `/api/health`, `/api/health/db`
 
 ---
 
-## 🚀 Khởi chạy nhanh — Launcher UI
+## Khởi chạy nhanh — Launcher UI
 
 Double-click `Admin\open.bat` (hoặc `launcher.ps1`) để mở **Smart Room Launcher**:
 
@@ -161,7 +161,7 @@ Hoặc bấm **"Cap nhat DB"** trong Launcher UI.
 
 ---
 
-## 📦 Cấu trúc repo
+## Cấu trúc repo
 
 ```
 ├── Smart Room Search Website-BE/   # Backend (Express + Cloudflare Worker)
@@ -183,7 +183,7 @@ Hoặc bấm **"Cap nhat DB"** trong Launcher UI.
 
 ---
 
-## 🔐 Bảo mật
+## Bảo mật
 
 - Mật khẩu hash bằng `bcryptjs`, auth bằng JWT (`JWT_SECRET` — đặt qua `wrangler secret`)
 - API key TiDB Data Service (Public/Private) chỉ tồn tại trên Cloudflare Secrets, không bao giờ trong code/repo
@@ -192,7 +192,7 @@ Hoặc bấm **"Cap nhat DB"** trong Launcher UI.
 
 ---
 
-## 📚 Tài liệu
+## Tài liệu
 
 - `TIDB-DATA-SERVICE-SETUP.md` — toàn bộ 23 endpoint TiDB Data Service (name, method, path, SQL, params, response) — **bắt buộc** khi sửa dashboard Data Service
 - `Smart Room Search Website-BE/src/config/tidbDataService.js` — client Digest auth
@@ -205,7 +205,3 @@ Hoặc bấm **"Cap nhat DB"** trong Launcher UI.
 - Worker API: `https://smart-room-api.smart-room-backend.workers.dev`
 - Website: `https://smart-room-search.vercel.app`
 - Admin: `https://smart-room-admin.vercel.app`
-
----
-
-*Made with ❤️ by [vinh0407](https://github.com/vinh0407)*
