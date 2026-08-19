@@ -1,9 +1,16 @@
 import axios from 'axios';
 
+function normalizeApiBase(url: string): string {
+  const raw = String(url || '').trim().replace(/\/+$/, '');
+  if (!raw) return '/api';
+  return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+}
+
 const api = axios.create({
   // Local: http://localhost:4000/api (BE Express) hoặc http://localhost:8787/api (wrangler dev)
   // Production: https://smart-room-api.<your-subdomain>.workers.dev/api
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  // Tự thêm /api nếu VITE_API_URL chỉ tới gốc domain (vd: ...workers.dev)
+  baseURL: normalizeApiBase(import.meta.env.VITE_API_URL as string | undefined),
   // Worker Cloudflare / TiDB kết nối nhanh; giữ timeout cao cho kết nối đầu
   timeout: 60000,
 });
