@@ -105,12 +105,16 @@ const syncRoomCoords = async (row) => {
   const room = mapRow(row);
   const { room: fixed, changed } = await resolveRoomCoordinates(room);
   if (changed) {
-    if (isDataService()) {
-      await tidb('/rooms/{id}', { method: 'PUT', params: { id: fixed.id }, body: { lat: fixed.lat, lng: fixed.lng } });
-    } else if (pool) {
-      await pool.query('UPDATE rooms SET lat = ?, lng = ? WHERE id = ?', [fixed.lat, fixed.lng, fixed.id]);
+    try {
+      if (isDataService()) {
+        await tidb('/rooms/{id}', { method: 'PUT', params: { id: fixed.id }, body: { lat: fixed.lat, lng: fixed.lng } });
+      } else if (pool) {
+        await pool.query('UPDATE rooms SET lat = ?, lng = ? WHERE id = ?', [fixed.lat, fixed.lng, fixed.id]);
+      }
+      updateRoomsLastModified();
+    } catch (error) {
+      console.warn('[rooms] sync coords failed (skip):', error.message);
     }
-    updateRoomsLastModified();
   }
   return fixed;
 };

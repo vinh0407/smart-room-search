@@ -6,6 +6,15 @@ function normalizeApiBase(url: string): string {
   return /\/api$/i.test(raw) ? raw : `${raw}/api`;
 }
 
+function defaultApiBase(): string {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL as string;
+  const host = window.location.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+  return isLocal
+    ? 'http://localhost:4000/api'
+    : 'https://smart-room-api.smart-room-backend.workers.dev/api';
+}
+
 export function resolveApiBase(): string {
   const params = new URLSearchParams(window.location.search);
   const fromQuery = params.get('api');
@@ -15,9 +24,7 @@ export function resolveApiBase(): string {
     return normalized;
   }
   return normalizeApiBase(
-    localStorage.getItem('admin_api_base') ||
-      (import.meta.env.VITE_API_URL as string | undefined) ||
-      'http://localhost:4000/api'
+    defaultApiBase() || localStorage.getItem('admin_api_base') || ''
   );
 }
 
