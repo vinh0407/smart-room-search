@@ -1203,7 +1203,6 @@ export default function App() {
         r.id === id ? { ...r, views: r.views + 1 } : r,
       ),
     );
-    api.post(`/rooms/${id}/view`).catch(() => {});
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [navigate]);
 
