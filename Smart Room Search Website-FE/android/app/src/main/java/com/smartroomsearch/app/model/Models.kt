@@ -13,28 +13,35 @@ data class Room(
     val address: String,
     val price: Double,
     val area: Double,
-    val images: List<String>, 
+    val images: List<String>,
     val status: RoomStatus,
     val electricity: Int = 3500,
     val water: Int = 150000,
     val internet: Int = 100000,
-    @SerializedName("service_fee") val serviceFee: Int = 200000,
-    @SerializedName("max_people") val maxPeople: Int = 2,
+    val serviceFee: Int = 200000,
+    val maxPeople: Int = 2,
     val district: String = "Quận 1",
     val city: String = "TP.HCM",
     val lat: Double = 10.7731,
     val lng: Double = 106.6952,
     val amenities: List<String>,
     val phone: String = "0901234567",
-    @SerializedName("zalo_link") val zaloLink: String = "https://zalo.me/0901234567",
+    val zaloLink: String = "https://zalo.me/0901234567",
     val views: Int = 0,
     val contacts: Int = 0,
-    @SerializedName("is_featured") val isFeatured: Boolean = false,
-    @SerializedName("is_new") val isNew: Boolean = false,
-    @SerializedName("is_cheap") val isCheap: Boolean = false,
+    val isFeatured: Boolean = false,
+    val isNew: Boolean = false,
+    val isCheap: Boolean = false,
     val rating: Double = 4.5,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("updated_at") val updatedAt: String?
+)
+
+data class RoomStats(
+    val total: Long = 0,
+    val available: Long = 0,
+    val rented: Long = 0,
+    val revenue: Double = 0.0
 )
 
 @Entity(tableName = "favorites")

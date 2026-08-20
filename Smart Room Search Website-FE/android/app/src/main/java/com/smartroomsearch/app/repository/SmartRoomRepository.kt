@@ -24,15 +24,20 @@ class SmartRoomRepository(
     // Admin Rooms
     suspend fun getStats(token: String) = api.getRoomStats("Bearer $token")
     suspend fun createRoom(token: String, room: Room) = api.createRoom("Bearer $token", room)
+    suspend fun createRoom(token: String, room: Map<String, Any?>) = api.createRoomMap("Bearer $token", room)
+    suspend fun updateRoomStatus(token: String, id: Int, status: String) =
+        api.updateRoomStatus("Bearer $token", id, mapOf("status" to status))
     suspend fun deleteRoom(token: String, id: Int) = api.deleteRoom("Bearer $token", id)
 
     // Tenants
     suspend fun getTenants(token: String) = api.listTenants("Bearer $token")
-    suspend fun deleteTenant(token: String, id: Int) = api.deleteTenant("Bearer $token", id)
+    suspend fun deleteTenant(token: String, id: Int, reason: String? = null) =
+        api.deleteTenant("Bearer $token", id, reason)
 
     // Demands
     suspend fun getDemands() = api.listDemands()
     suspend fun createDemand(demand: RoomDemand) = api.createDemand(demand)
+    suspend fun deleteDemand(token: String, id: Int) = api.deleteDemand("Bearer $token", id)
 
     // AI & Geocode
     suspend fun geocode(token: String, address: String) = api.geocodeAddress("Bearer $token", address)

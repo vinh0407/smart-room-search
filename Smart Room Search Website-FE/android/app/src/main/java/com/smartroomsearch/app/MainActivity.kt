@@ -97,10 +97,25 @@ fun AppMain(viewModel: MainViewModel) {
             composable(Screen.Admin.route) {
                 val isLoggedIn by viewModel.isLoggedIn.collectAsState()
                 if (isLoggedIn) {
-                    AdminDashboardScreen(viewModel)
+                    AdminDashboardScreen(
+                        viewModel,
+                        onAddRoom = { navController.navigate("admin_add_room") },
+                        onManageRooms = { navController.navigate("admin_rooms") },
+                        onManageTenants = { navController.navigate("admin_tenants") },
+                        onManageDemands = { navController.navigate(Screen.Demands.route) }
+                    )
                 } else {
                     AdminLoginScreen(viewModel)
                 }
+            }
+            composable("admin_add_room") {
+                AdminAddRoomScreen(viewModel, onBack = { navController.popBackStack() })
+            }
+            composable("admin_rooms") {
+                AdminRoomsScreen(viewModel, onBack = { navController.popBackStack() })
+            }
+            composable("admin_tenants") {
+                AdminTenantsScreen(viewModel, onBack = { navController.popBackStack() })
             }
             composable(
                 "detail/{roomId}",

@@ -1,9 +1,8 @@
 package com.smartroomsearch.app.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -19,18 +18,28 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.smartroomsearch.app.model.RoomStatus
+import com.smartroomsearch.app.model.RoomStats
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminDashboardScreen(viewModel: MainViewModel) {
-    val rooms by viewModel.rooms.collectAsState()
+fun AdminDashboardScreen(
+    viewModel: MainViewModel,
+    onAddRoom: () -> Unit,
+    onManageRooms: () -> Unit,
+    onManageTenants: () -> Unit,
+    onManageDemands: () -> Unit
+) {
+    val stats by viewModel.stats.collectAsState()
+    val tenants by viewModel.tenants.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Admin Dashboard", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = { viewModel.refreshAdmin() }) {
+                        Icon(Icons.Default.Refresh, null)
+                    }
                     IconButton(onClick = { viewModel.logout() }) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, null)
                     }
@@ -38,43 +47,49 @@ fun AdminDashboardScreen(viewModel: MainViewModel) {
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-            Text(text = "Thống kê tổng quan", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-            Spacer(Modifier.height(24.dp))
-            
-            val totalRevenue = rooms.filter { it.status == RoomStatus.rented }.sumOf { it.price }
-            
-            val stats = listOf(
-                StatItem("Tổng phòng", rooms.size.toString(), Icons.Default.Home),
-                StatItem("Còn trống", rooms.count { it.status == RoomStatus.available }.toString(), Icons.Default.CheckCircle),
-                StatItem("Đã thuê", rooms.count { it.status == RoomStatus.rented }.toString(), Icons.Default.Person),
-                StatItem("Doanh thu", formatPriceShort(totalRevenue), Icons.Default.ShoppingCart)
-            )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Text(text = "Thống kê tổng quan", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+            }
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(stats) { item ->
-                    StatCard(item)
+            item {
+                val s: RoomStats = stats ?: RoomStats()
+                val statItems = listOf(
+                    StatItem("Tổng phòng", s.total.toString(), Icons.Default.Home),
+                    StatItem("Còn trống", s.available.toString(), Icons.Default.CheckCircle),
+                    StatItem("Đã thuê", s.rented.toString(), Icons.Default.Person),
+                    StatItem("Doanh thu", formatPriceShort(s.revenue), Icons.Default.ShoppingCart)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        StatCard(statItems[0], Modifier.weight(1f))
+                        StatCard(statItems[1], Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        StatCard(statItems[2], Modifier.weight(1f))
+                        StatCard(statItems[3], Modifier.weight(1f))
+                    }
                 }
             }
-            
-            Spacer(Modifier.height(32.dp))
-            Text(text = "Quản lý nhanh", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(16.dp))
-            
-            Button(
-                onClick = { /* Navigate to Add Room */ },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Add, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Đăng phòng mới", fontWeight = FontWeight.Bold)
+
+            item {
+                Text(text = "Khách thuê hiện tại (${tenants.size})", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+
+            item {
+                Text(text = "Quản lý nhanh", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+
+            item { QuickActionButton(Icons.Default.Add, "Đăng phòng mới", onAddRoom, Color(0xFF10B981)) }
+            item { QuickActionButton(Icons.Default.Home, "Quản lý phòng", onManageRooms, Color(0xFF3B82F6)) }
+            item { QuickActionButton(Icons.Default.Person, "Quản lý khách thuê", onManageTenants, Color(0xFFF59E0B)) }
+            item { QuickActionButton(Icons.Default.Info, "Nhu cầu tìm phòng", onManageDemands, Color(0xFF8B5CF6)) }
         }
     }
 }
@@ -82,9 +97,9 @@ fun AdminDashboardScreen(viewModel: MainViewModel) {
 data class StatItem(val label: String, val value: String, val icon: ImageVector)
 
 @Composable
-fun StatCard(item: StatItem) {
+fun StatCard(item: StatItem, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
@@ -93,6 +108,28 @@ fun StatCard(item: StatItem) {
             Spacer(Modifier.height(12.dp))
             Text(text = item.label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(text = item.value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+fun QuickActionButton(icon: ImageVector, label: String, onClick: () -> Unit, color: Color) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(color = color.copy(alpha = 0.12f), shape = RoundedCornerShape(10.dp)) {
+                Icon(icon, null, tint = color, modifier = Modifier.padding(10.dp).size(22.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Text(label, fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
     }
 }

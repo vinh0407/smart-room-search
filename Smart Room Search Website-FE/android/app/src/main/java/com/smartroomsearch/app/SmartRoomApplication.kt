@@ -12,7 +12,9 @@ class SmartRoomApplication : Application() {
     
     override fun onCreate() {
         super.onCreate()
-        
+
+        RetrofitClient.init(this)
+
         val database = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java,

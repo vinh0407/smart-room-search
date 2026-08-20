@@ -20,6 +20,12 @@ fun AdminLoginScreen(viewModel: MainViewModel) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val isLoading by viewModel.isLoading.collectAsState()
+    val loginError by viewModel.loginError.collectAsState()
+
+    fun submitLogin() {
+        viewModel.clearLoginError()
+        viewModel.login(username.trim(), password)
+    }
 
     Box(
         modifier = Modifier
@@ -47,7 +53,7 @@ fun AdminLoginScreen(viewModel: MainViewModel) {
             
             OutlinedTextField(
                 value = username,
-                onValueChange = { username = it },
+                onValueChange = { username = it; viewModel.clearLoginError() },
                 label = { Text("Tên đăng nhập") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Person, null) },
@@ -58,18 +64,28 @@ fun AdminLoginScreen(viewModel: MainViewModel) {
             
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { password = it; viewModel.clearLoginError() },
                 label = { Text("Mật khẩu") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Lock, null) },
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp)
             )
+
+            loginError?.let {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 13.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             
             Spacer(modifier = Modifier.height(24.dp))
             
             Button(
-                onClick = { viewModel.login(username, password) },
+                onClick = { submitLogin() },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 enabled = !isLoading

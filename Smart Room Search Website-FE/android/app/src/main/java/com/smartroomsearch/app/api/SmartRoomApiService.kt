@@ -40,6 +40,9 @@ interface SmartRoomApiService {
     @POST("rooms")
     suspend fun createRoom(@Header("Authorization") token: String, @Body room: Room): Response<Map<String, Any>>
 
+    @POST("rooms")
+    suspend fun createRoomMap(@Header("Authorization") token: String, @Body room: Map<String, Any?>): Response<Map<String, Any>>
+
     @PUT("rooms/{id}")
     suspend fun updateRoom(@Header("Authorization") token: String, @Path("id") id: Int, @Body room: Map<String, Any?>): Response<Map<String, Any>>
 
@@ -70,7 +73,11 @@ interface SmartRoomApiService {
     suspend fun updateTenant(@Header("Authorization") token: String, @Path("id") id: Int, @Body tenant: Map<String, Any?>): Response<Map<String, Any>>
 
     @DELETE("tenants/{id}")
-    suspend fun deleteTenant(@Header("Authorization") token: String, @Path("id") id: Int): Response<Map<String, Any>>
+    suspend fun deleteTenant(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int,
+        @Query("reason") reason: String? = null
+    ): Response<Map<String, Any>>
 
     @GET("tenant-history")
     suspend fun listTenantHistory(@Header("Authorization") token: String): Response<List<TenantHistory>>
