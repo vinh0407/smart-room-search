@@ -37,6 +37,7 @@ import {
 
 import { generateRoomDescription } from './controllers/aiController.js';
 import { geocodeAddress } from './controllers/geocodeController.js';
+import { parseRooms } from './controllers/roomParseController.js';
 
 import {
   listDemands,
@@ -351,6 +352,12 @@ app.post(
   '/api/ai/room-description',
   authenticate,
   generateRoomDescription
+);
+
+app.post(
+  '/api/rooms/parse',
+  authenticate,
+  parseRooms
 );
 
 app.get(
