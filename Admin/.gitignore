@@ -9,3 +9,5 @@ android/build
 android/.gradle
 android/.idea
 android/app/src/main/assets/public
+.vercel
+.env*
