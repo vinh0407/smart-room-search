@@ -1,4 +1,4 @@
-# 🏠 Smart Room Search — Trọ Xịn
+# Smart Room Search — Trọ Xịn
 
 > Nền tảng tìm kiếm và quản lý phòng trọ tại **TP.HCM** — người thuê tìm phòng, chủ trọ quản lý phòng/khách thuê/nhu cầu. Gồm **Website + Admin Web + App Android** dùng chung một Backend API.
 
