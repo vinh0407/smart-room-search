@@ -963,6 +963,10 @@ export default function App() {
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [roomsError, setRoomsError] = useState<string | null>(null);
   const [roomsReloadKey, setRoomsReloadKey] = useState(0);
+  const [detailRoom, setDetailRoom] = useState<Room | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [detailReloadKey, setDetailReloadKey] = useState(0);
   const [banners, setBanners] =
     useState<Banner[]>(INITIAL_BANNERS);
   const [prices, setPrices] =
@@ -1062,6 +1066,49 @@ export default function App() {
     };
   }, [roomsReloadKey]);
 
+  // Load chi tiết phòng độc lập từ API — không phụ thuộc list.
+  // Fix: /rooms/:id truy cập trực tiếp (F5, link chia sẻ) hoặc phòng
+  // chưa có trong list (mới tạo) vẫn hiển thị đầy đủ.
+  useEffect(() => {
+    if (view !== "detail" || selectedRoomId == null) {
+      setDetailRoom(null);
+      setDetailError(null);
+      return;
+    }
+
+    let isMounted = true;
+    setDetailLoading(true);
+    setDetailError(null);
+
+    const loadDetail = async () => {
+      try {
+        const { data } = await api.get(`/rooms/${selectedRoomId}`);
+        if (!isMounted) return;
+        setDetailRoom(mapApiRoomToRoom(data));
+        setDetailError(null);
+        api.post(`/rooms/${selectedRoomId}/view`).catch(() => {});
+      } catch (error: any) {
+        console.error(`Failed to load room ${selectedRoomId}`, error);
+        if (isMounted) {
+          setDetailRoom(null);
+          if (error?.response?.status === 404) {
+            setDetailError("not_found");
+          } else {
+            setDetailError("Không thể kết nối máy chủ. Xin chờ một chút và thử lại.");
+          }
+        }
+      } finally {
+        if (isMounted) setDetailLoading(false);
+      }
+    };
+
+    loadDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [view, selectedRoomId, detailReloadKey]);
+
   // Hero auto-rotate (chỉ khi đang ở trang chủ để tránh re-render thừa)
   useEffect(() => {
     if (view !== "home") return;
@@ -1071,11 +1118,6 @@ export default function App() {
     );
     return () => clearInterval(id);
   }, [view, banners.length]);
-
-  const selectedRoom = useMemo(
-    () => rooms.find((r) => r.id === selectedRoomId),
-    [rooms, selectedRoomId],
-  );
 
   const filteredRooms = useMemo(() => {
     return rooms.filter((r) => {
@@ -2071,8 +2113,7 @@ const goHome = () => {
 
   // ─── DETAIL ──────────────────────────────────────────
   const DetailPage = () => {
-    if (!selectedRoom) return null;
-    const room = selectedRoom;
+    const room = detailRoom!;
     const status = getStatusInfo(room.status);
     const dist = distances[room.id];
     const roomInfoItems = [
@@ -2553,7 +2594,7 @@ const goHome = () => {
             {RoomsPage()}
           </motion.div>
         )}
-        {view === "detail" && selectedRoom && (
+        {view === "detail" && detailRoom && (
           <motion.div
             key="detail"
             initial={{ opacity: 0 }}
@@ -2614,7 +2655,7 @@ const goHome = () => {
             </div>
           </motion.div>
         )}
-        {view === "detail" && !selectedRoom && (
+        {view === "detail" && !detailRoom && (
           <motion.div
             key="detail-empty"
             initial={{ opacity: 0 }}
@@ -2624,25 +2665,33 @@ const goHome = () => {
           >
             <div className="mx-auto max-w-md flex flex-col items-center text-center gap-3">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-                <Building2 size={28} className="text-muted-foreground" />
+                {detailLoading ? (
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : (
+                  <Building2 size={28} className="text-muted-foreground" />
+                )}
               </div>
               <h2 className="font-bold text-foreground">
-                {roomsLoading
-                  ? "Đang tải phòng..."
-                  : roomsError
-                    ? "Không thể tải phòng"
-                    : "Không tìm thấy phòng"}
+                {detailLoading
+                  ? "Đang tải thông tin phòng..."
+                  : detailError === "not_found"
+                    ? "Không tìm thấy phòng này."
+                    : detailError
+                      ? "Không thể tải thông tin phòng"
+                      : "Đang tải thông tin phòng..."}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {roomsLoading
-                  ? "Xin chờ một chút."
-                  : roomsError
-                    ? roomsError
-                    : "Phòng có thể đã bị xóa hoặc liên kết không đúng."}
+                {detailLoading
+                  ? "Xin chờ một chút, hệ thống đang lấy dữ liệu phòng."
+                  : detailError === "not_found"
+                    ? "Phòng có thể đã bị xóa hoặc liên kết không đúng."
+                    : detailError
+                      ? detailError
+                      : "Xin chờ một chút, hệ thống đang lấy dữ liệu phòng."}
               </p>
-              {roomsError && (
+              {detailError && detailError !== "not_found" && (
                 <button
-                  onClick={() => setRoomsReloadKey((k) => k + 1)}
+                  onClick={() => setDetailReloadKey((k) => k + 1)}
                   className="mt-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white"
                 >
                   Thử lại
