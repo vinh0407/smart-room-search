@@ -35,7 +35,7 @@ const mapHistoryRow = (row) => ({
 
 export const getAllTenantHistory = async () => {
   if (isDataService()) {
-    const { rows } = await tidb('/tenant-history', { method: 'GET' });
+    const { rows } = await tidb('/tenant_history', { method: 'GET' });
     return rows.map(mapHistoryRow);
   }
 
@@ -70,7 +70,7 @@ export const recordTenantDeletion = async (tenant, roomTitle, reason = '') => {
   };
 
   if (isDataService()) {
-    const { insertId } = await tidb('/tenant-history', { method: 'POST', body: payload });
+    const { insertId } = await tidb('/tenant_history', { method: 'POST', body: payload });
     return { id: insertId, ...payload };
   }
 

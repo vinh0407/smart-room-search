@@ -142,57 +142,6 @@ const normalize = (raw) => {
   return out;
 };
 
-/**
- * Gọi một endpoint của Data App.
- * @param {string} endpointPath  Ví dụ: '/rooms', '/rooms/{id}'
- * @param {object} options       { method, params, body }
- *                               GET: params → query string; khác: params+body → JSON body
- */
-export async function tidbRaw(endpointPath, options = {}) {
-  const { url, publicKey, privateKey } = config();
-  const { method = 'GET', params = {}, body = null } = options;
-
-  const baseUrl = url.replace(/\/+$/, '');
-  let fullUrl = `${baseUrl}/${String(endpointPath).replace(/^\/+/, '')}`;
-
-  // Thay {param} trong path bằng giá trị thật (TiDB DS bind param từ URL path)
-  fullUrl = fullUrl.replace(/\{([^}]+)\}/g, (match, name) => {
-    const v = params[name];
-    if (v === undefined || v === null || v === '') return match;
-    return encodeURIComponent(String(v));
-  });
-
-  const headers = {
-    Authorization: getBasicAuth(publicKey, privateKey),
-    Accept: 'application/json',
-  };
-
-  let payload;
-  if (method === 'GET') {
-    const qs = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined && value !== null && value !== '') {
-        qs.set(key, String(value));
-      }
-    }
-    const q = qs.toString();
-    if (q) fullUrl += (fullUrl.includes('?') ? '&' : '?') + q;
-  } else {
-    headers['Content-Type'] = 'application/json';
-    payload = JSON.stringify({ ...params, ...(body || {}) });
-  }
-
-  const response = await authFetch(
-    fullUrl,
-    { method, headers, body: payload },
-    publicKey,
-    privateKey
-  );
-
-  const text = await response.text();
-  return { status: response.status, text };
-}
-
 export async function tidb(endpointPath, options = {}) {
   const { url, publicKey, privateKey } = config();
   const { method = 'GET', params = {}, body = null } = options;

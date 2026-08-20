@@ -52,7 +52,7 @@ const mapTenantRow = (t, roomTitle) => ({
   owner_phone: t.owner_phone || '',
   payment_status: t.payment_status || '',
   note: t.note || '',
-  is_complete: Boolean(t.is_complete),
+  is_complete: Number(t.is_complete) === 1,
   created_at: t.created_at,
 });
 

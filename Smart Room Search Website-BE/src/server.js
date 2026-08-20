@@ -48,7 +48,7 @@ import {
 import { roomEvents, ROOMS_CHANGED } from './utils/events.js';
 import { roomsLastModified } from './models/roomModel.js';
 import { pool, isMockMode, isWorkers } from './config/db.js';
-import { isDataService, tidb, tidbRaw } from './config/tidbDataService.js';
+import { isDataService, tidb } from './config/tidbDataService.js';
 import {
   upload,
   uploadDir,
@@ -133,17 +133,6 @@ app.get('/health', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'smart-room-api' });
-});
-
-// DEBUG tạm: xem phản hồi thô của Data Service (sẽ xóa sau khi chẩn đoán xong)
-app.get('/api/debug/ds/:path(*)', async (req, res) => {
-  try {
-    const path = '/' + req.params.path;
-    const raw = await tidbRaw(path, { method: req.query.method || 'GET', params: req.query });
-    return res.status(raw.status).json({ raw: raw.text });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
 });
 
 // Kiểm tra kết nối database thật (SELECT 1 / endpoint rẻ nhất)
