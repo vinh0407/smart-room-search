@@ -6,7 +6,10 @@ import fs from 'node:fs';
 export const isWorkers =
   typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
 
-if (!isWorkers) {
+// Vercel detection
+export const isVercel = process.env.VERCEL === '1';
+
+if (!isWorkers && !isVercel) {
   const { default: dotenv } = await import('dotenv');
   dotenv.config();
 }
@@ -16,10 +19,10 @@ let isMockMode = false;
 let isReady = false;
 
 const createPool = async () => {
-  // Workers: CẤM tuyệt đối mysql2 pool — DB chỉ truy cập qua TiDB Data Service.
-  // Nếu có DB_* env trên Workers thì chúng bị bỏ qua hoàn toàn (không tạo kết nối TCP).
-  if (isWorkers) {
-    console.error('[db] MySQL pool disabled on Cloudflare Workers — use TiDB Data Service');
+  // Workers/Vercel: CẤM tuyệt đối mysql2 pool — DB chỉ truy cập qua TiDB Data Service.
+  // Nếu có DB_* env trên Workers/Vercel thì chúng bị bỏ qua hoàn toàn (không tạo kết nối TCP).
+  if (isWorkers || isVercel) {
+    console.error('[db] MySQL pool disabled on serverless — use TiDB Data Service');
     return null;
   }
 
@@ -43,8 +46,8 @@ const createPool = async () => {
     connectionLimit: isWorkers ? 5 : 10,
     queueLimit: 0,
     multipleStatements: true,
-    // workerd cấm "code generation from strings" — dùng static parser (không new Function)
-    disableEval: isWorkers,
+    // workerd/Vercel cấm "code generation from strings" — dùng static parser (không new Function)
+    disableEval: isWorkers || isVercel,
     ...(useSsl
       ? isWorkers
         ? // workerd chưa hỗ trợ option rejectUnauthorized — dùng SSL mặc định

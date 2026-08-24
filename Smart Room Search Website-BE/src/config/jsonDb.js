@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isWorkers } from './db.js';
+import { isWorkers, isVercel } from './db.js';
 
 const __filename = (() => {
   try {
@@ -12,11 +12,11 @@ const __filename = (() => {
 })();
 const __dirname = path.dirname(__filename);
 
-// Workers không có filesystem bền vững — cấm mọi fallback dữ liệu JSON.
-// Nếu code chạm tới đây trên Workers nghĩa là DB không khả dụng → lỗi rõ ràng.
+// Workers/Vercel không có filesystem bền vững — cấm mọi fallback dữ liệu JSON.
+// Nếu code chạm tới đây trên Workers/Vercel nghĩa là DB không khả dụng → lỗi rõ ràng.
 const assertWritable = () => {
-  if (isWorkers) {
-    throw new Error('Database không khả dụng trên Cloudflare Workers (JSON fallback bị vô hiệu hóa).');
+  if (isWorkers || isVercel) {
+    throw new Error('Database không khả dụng trên serverless (JSON fallback bị vô hiệu hóa).');
   }
 };
 

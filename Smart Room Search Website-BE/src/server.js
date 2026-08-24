@@ -48,7 +48,7 @@ import {
 
 import { roomEvents, ROOMS_CHANGED } from './utils/events.js';
 import { roomsLastModified } from './models/roomModel.js';
-import { pool, isMockMode, isWorkers } from './config/db.js';
+import { pool, isMockMode, isReady, isWorkers, isVercel } from './config/db.js';
 import { isDataService, tidb } from './config/tidbDataService.js';
 import {
   upload,
@@ -56,7 +56,7 @@ import {
   deleteUploadFile,
 } from './controllers/uploadController.js';
 
-if (!isWorkers) dotenv.config();
+if (!isWorkers && !isVercel) dotenv.config();
 
 const app = express();
 
@@ -419,9 +419,9 @@ app.use((err, req, res, next) => {
    START SERVER
 ========================= */
 
-// Trên Cloudflare Workers không gọi app.listen — worker.js
-// dùng httpServerHandler để nối Express vào fetch event.
-if (!isWorkers) {
+// Trên Cloudflare Workers và Vercel không gọi app.listen — serverless function.
+// Vercel dùng @vercel/node để nối Express vào handler.
+if (!isWorkers && !isVercel) {
   app.listen(PORT, HOST, () => {
     console.log(
       `Backend running on http://${HOST}:${PORT}`
