@@ -1,4 +1,4 @@
-# 🏠 Smart Room Search — Trọ Xịn
+# Smart Room Search — Trọ Xịn
 
 > Nền tảng tìm kiếm và quản lý phòng trọ tại **TP.HCM** — người thuê tìm phòng, chủ trọ quản lý phòng/khách thuê/nhu cầu. Gồm **Website + Admin Web + App Android** dùng chung một Backend API.
 
@@ -17,20 +17,20 @@
 
 ---
 
-## 🔗 Link trực tiếp
+## Link trực tiếp
 
 | Thành phần | URL |
 |---|---|
-| 🌐 **Website người thuê** | https://smart-room-search.vercel.app |
-| 🔐 **Admin Web** (quản trị) | https://smart-room-admin-ccyw8rtp6-v-c621.vercel.app |
-| ⚙️ **Backend API** | https://smart-room-api.smart-room-backend.workers.dev/api |
-| ❤️ Health check | https://smart-room-api.smart-room-backend.workers.dev/health |
+|  **Website người thuê** | https://smart-room-search.vercel.app |
+|  **Admin Web** (quản trị) | https://smart-room-admin-ccyw8rtp6-v-c621.vercel.app |
+|  **Backend API** | https://smart-room-api.smart-room-backend.workers.dev/api |
+|  Health check | https://smart-room-api.smart-room-backend.workers.dev/health |
 
 > Đăng nhập Admin: `admin / 123`
 
 ---
 
-## 📱 Tải App Android (APK)
+##  Tải App Android (APK)
 
 | Bản | File | Kích thước |
 |---|---|---|
@@ -38,14 +38,14 @@
 
 App Android (native **Kotlin + Jetpack Compose**) gồm đầy đủ:
 
-- 👤 Người thuê: danh sách phòng, lọc theo quận/giá/tiện ích, chi tiết phòng, bản đồ, yêu thích (lưu offline), đăng nhu cầu tìm phòng
-- 🔐 Admin (trong app): đăng nhập, dashboard thống kê thật từ API, quản lý phòng (thêm/sửa/xóa/đổi trạng thái), quản lý khách thuê, nhu cầu — tự động lưu token
+-  Người thuê: danh sách phòng, lọc theo quận/giá/tiện ích, chi tiết phòng, bản đồ, yêu thích (lưu offline), đăng nhu cầu tìm phòng
+-  Admin (trong app): đăng nhập, dashboard thống kê thật từ API, quản lý phòng (thêm/sửa/xóa/đổi trạng thái), quản lý khách thuê, nhu cầu — tự động lưu token
 
 **Cài đặt:** tải file APK → mở trên điện thoại Android → cho phép "Cài đặt từ nguồn không xác định" → cài đặt. (APK debug-signed, dùng cho mục đích demo/thử nghiệm.)
 
 ---
 
-## ✨ Chức năng
+##  Chức năng
 
 ### Website người thuê
 - Tìm kiếm & lọc phòng theo quận, giá, diện tích, tiện nghi, trạng thái
@@ -72,7 +72,7 @@ App Android (native **Kotlin + Jetpack Compose**) gồm đầy đủ:
 
 ---
 
-## 🏗 Kiến trúc
+##  Kiến trúc
 
 ```
 ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
@@ -110,7 +110,7 @@ App Android (native **Kotlin + Jetpack Compose**) gồm đầy đủ:
 
 ---
 
-## 📂 Cấu trúc repo
+##  Cấu trúc repo
 
 ```
 ├── Smart Room Search Website-BE/    # Backend (Express + Cloudflare Worker)
@@ -142,7 +142,7 @@ App Android (native **Kotlin + Jetpack Compose**) gồm đầy đủ:
 
 ---
 
-## 🛠 Cài đặt & phát triển
+##  Cài đặt & phát triển
 
 ### Yêu cầu
 - Node.js ≥ 20 (khuyến nghị 22+)
@@ -216,21 +216,21 @@ node scripts/migrate-to-mysql.js
 | GET | `/api/rooms` | – | Danh sách phòng (+ filter: status, district, priceMin/Max, areaMin/Max, search) |
 | GET | `/api/rooms/:id` | – | Chi tiết phòng |
 | POST | `/api/rooms/:id/view` · `/contact` | – | Track lượt xem / liên hệ |
-| GET | `/api/rooms/stats` | ✅ | Thống kê dashboard |
-| POST | `/api/rooms` | ✅ | Tạo phòng |
-| PUT | `/api/rooms/:id` | ✅ | Sửa phòng |
-| DELETE | `/api/rooms/:id` | ✅ | Xóa phòng |
-| PUT | `/api/rooms/:id/status` | ✅ | Đổi trạng thái (available/rented/maintenance) |
-| **POST** | **`/api/rooms/parse`** | ✅ | **Nhập liệu thông minh**: dán văn bản tiếng Việt → tạo/sửa phòng tự động |
+| GET | `/api/rooms/stats` | Thống kê dashboard |
+| POST | `/api/rooms` | Tạo phòng |
+| PUT | `/api/rooms/:id` | Sửa phòng |
+| DELETE | `/api/rooms/:id` | Xóa phòng |
+| PUT | `/api/rooms/:id/status` | Đổi trạng thái (available/rented/maintenance) |
+| **POST** | **`/api/rooms/parse`** | **Nhập liệu thông minh**: dán văn bản tiếng Việt → tạo/sửa phòng tự động |
 | GET/POST | `/api/demands` | – | Nhu cầu tìm phòng |
-| GET/POST | `/api/tenants` · `/api/tenant-history` | ✅ | Khách thuê & lịch sử |
-| POST | `/api/ai/room-description` | ✅ | AI tạo mô tả phòng |
-| GET | `/api/geocode` | ✅ | Geocoding địa chỉ |
+| GET/POST | `/api/tenants` · `/api/tenant-history` | Khách thuê & lịch sử |
+| POST | `/api/ai/room-description` | AI tạo mô tả phòng |
+| GET | `/api/geocode` | Geocoding địa chỉ |
 | GET | `/health` · `/api/health` · `/api/health/db` | – | Health check |
 
 ---
 
-## 🔒 Bảo mật
+##  Bảo mật
 
 - Mật khẩu hash bằng `bcryptjs`, auth bằng JWT (`JWT_SECRET` — đặt qua `wrangler secret`)
 - API key TiDB Data Service (Public/Private) chỉ tồn tại trên Cloudflare Secrets, không bao giờ trong code/repo
@@ -240,7 +240,7 @@ node scripts/migrate-to-mysql.js
 
 ---
 
-## 🧑‍💻 Thông tin
+## Thông tin
 
 - GitHub: [vinh0407/smart-room-search](https://github.com/vinh0407/smart-room-search)
 - Website: https://smart-room-search.vercel.app
