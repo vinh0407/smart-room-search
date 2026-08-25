@@ -2809,6 +2809,14 @@ const goHome = () => {
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{d.people_count || 1} người{d.gender ? ` · ${d.gender}` : ''}</p>
                     {d.note && <p className="mt-1 text-sm text-foreground">{d.note}</p>}
+                    <a
+                      href="https://zalo.me/0337244067"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white"
+                    >
+                      Liên hệ môi giới
+                    </a>
                   </article>
                 ))}
               </div>
