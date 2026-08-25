@@ -1,4 +1,4 @@
-﻿import { pool, isMockMode, isReady, isWorkers } from '../config/db.js';
+import { pool, isMockMode, isReady, isWorkers } from '../config/db.js';
 import { isDataService, tidb } from '../config/tidbDataService.js';
 import { getInitialRooms } from '../config/seed.js';
 import { readJsonFile, writeJsonFile } from '../config/jsonDb.js';
@@ -276,6 +276,9 @@ export const createRoom = async (roomData) => {
     lng: geocoded.lng,
   });
 
+  const finalLat = Number(finalRoom.lat != null && !isNaN(finalRoom.lat) ? finalRoom.lat : 10.7731);
+  const finalLng = Number(finalRoom.lng != null && !isNaN(finalRoom.lng) ? finalRoom.lng : 106.6952);
+
   if (isDataService()) {
     const insert = {
       title: room.title,
@@ -292,8 +295,8 @@ export const createRoom = async (roomData) => {
       maxPeople: room.maxPeople,
       district: room.district,
       city: room.city,
-      lat: finalRoom.lat,
-      lng: finalRoom.lng,
+      lat: finalLat,
+      lng: finalLng,
       amenities: JSON.stringify(room.amenities),
       phone: room.phone,
       zaloLink: room.zaloLink,
@@ -306,14 +309,15 @@ export const createRoom = async (roomData) => {
     };
     const { insertId } = await tidb('/rooms', { method: 'POST', body: insert });
     updateRoomsLastModified();
-    return { ...finalRoom, id: insertId };
+    return { ...finalRoom, lat: finalLat, lng: finalLng, id: insertId };
   }
 
   if ((!isReady || isMockMode || !pool) && !isWorkers) {
-    rooms.push(finalRoom);
+    const roomToSave = { ...finalRoom, lat: finalLat, lng: finalLng };
+    rooms.push(roomToSave);
     saveRooms(rooms);
     updateRoomsLastModified();
-    return mapRow(finalRoom);
+    return mapRow(roomToSave);
   }
 
   dbUnavailable();
@@ -338,8 +342,8 @@ export const createRoom = async (roomData) => {
       room.maxPeople,
       room.district,
       room.city,
-      finalRoom.lat,
-      finalRoom.lng,
+      finalLat,
+      finalLng,
       JSON.stringify(room.amenities),
       room.phone,
       room.zaloLink,
@@ -353,7 +357,20 @@ export const createRoom = async (roomData) => {
   );
 
   updateRoomsLastModified();
-  return { ...finalRoom, id: result.insertId };
+  return { ...finalRoom, lat: finalLat, lng: finalLng, id: result.insertId };
+};
+
+export const bulkDeleteRooms = async (ids) => {
+  if (!Array.isArray(ids) || ids.length === 0) return { count: 0 };
+  let count = 0;
+  for (const rawId of ids) {
+    const numId = Number(rawId);
+    if (!isNaN(numId)) {
+      const res = await deleteRoom(numId);
+      if (res) count++;
+    }
+  }
+  return { count };
 };
 
 export const updateRoom = async (id, roomData) => {

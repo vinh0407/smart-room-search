@@ -25,7 +25,17 @@ const NAV_ITEMS = [
   { to: '/settings', label: 'Cài đặt', icon: Settings },
 ];
 
-export default function Layout({ children, onRefresh }: { children: ReactNode; onRefresh: () => void }) {
+export default function Layout({
+  children,
+  onRefresh,
+  newDemandCount = 0,
+  onOpenDemands,
+}: {
+  children: ReactNode;
+  onRefresh: () => void;
+  newDemandCount?: number;
+  onOpenDemands?: () => void;
+}) {
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,20 +57,21 @@ export default function Layout({ children, onRefresh }: { children: ReactNode; o
     navigate('/login');
   };
 
-  const dbBadge =
-    health?.dbMode === 'mysql' ? (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-        <Wifi size={12} /> MySQL
-      </span>
-    ) : health?.dbMode === 'json' ? (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-        <Wifi size={12} /> JSON
-      </span>
-    ) : (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700">
-        <WifiOff size={12} /> Không kết nối
-      </span>
-    );
+  const isTidbOrMysql = health?.dbMode === 'mysql' || health?.dbMode === 'tidb-data-service';
+
+  const dbBadge = isTidbOrMysql ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+      <Wifi size={12} /> {health?.dbMode === 'tidb-data-service' ? 'TiDB Cloud' : 'TiDB / MySQL'}
+    </span>
+  ) : health?.dbMode === 'json' ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+      <Wifi size={12} /> JSON Mock
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700">
+      <WifiOff size={12} /> Không kết nối
+    </span>
+  );
 
   const currentTitle = NAV_ITEMS.find((i) => location.pathname.startsWith(i.to))?.label || '';
 
@@ -81,6 +92,7 @@ export default function Layout({ children, onRefresh }: { children: ReactNode; o
             <NavLink
               key={to}
               to={to}
+              onClick={to === '/demands' ? onOpenDemands : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${
                   isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'
@@ -88,7 +100,12 @@ export default function Layout({ children, onRefresh }: { children: ReactNode; o
               }
             >
               <Icon size={17} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {to === '/demands' && newDemandCount > 0 && (
+                <span className="min-w-5 rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
+                  {newDemandCount > 99 ? '99+' : newDemandCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -125,13 +142,19 @@ export default function Layout({ children, onRefresh }: { children: ReactNode; o
           <NavLink
             key={to}
             to={to}
+            onClick={to === '/demands' ? onOpenDemands : undefined}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium ${
                 isActive ? 'text-blue-600' : 'text-slate-500'
               }`
             }
           >
-            <Icon size={17} />
+            <span className="relative">
+              <Icon size={17} />
+              {to === '/demands' && newDemandCount > 0 && (
+                <span className="absolute -right-2 -top-2 h-2 w-2 rounded-full bg-rose-500" />
+              )}
+            </span>
             {label}
           </NavLink>
         ))}

@@ -1,6 +1,7 @@
 ﻿import { pool, isMockMode, isReady, isWorkers } from '../config/db.js';
 import { isDataService, tidb } from '../config/tidbDataService.js';
 import { readJsonFile, writeJsonFile } from '../config/jsonDb.js';
+import { createD1Demand, deleteD1Demand, getD1Demand, hasDemandDatabase, listD1Demands, updateD1Demand } from '../config/d1DemandStore.js';
 
 const dbUnavailable = () => {
   if (isWorkers && !pool) {
@@ -17,6 +18,7 @@ const getDemands = () => readJsonFile('demands_db.json', []);
 const saveDemands = (data) => writeJsonFile('demands_db.json', data);
 
 export const getAllDemands = async () => {
+  if (hasDemandDatabase()) return listD1Demands();
   if (isDataService()) {
     const { rows } = await tidb('/demands', { method: 'GET' });
     return rows;
@@ -29,6 +31,7 @@ export const getAllDemands = async () => {
 };
 
 export const createDemand = async (data) => {
+  if (hasDemandDatabase()) return createD1Demand(data);
   if (isDataService()) {
     const body = {
       full_name: data.full_name || '',
@@ -71,6 +74,7 @@ export const createDemand = async (data) => {
 
 export const updateDemand = async (id, data) => {
   const demandId = Number(id);
+  if (hasDemandDatabase()) return updateD1Demand(demandId, data);
   if (isDataService()) {
     const body = {
       full_name: data.full_name || '',
@@ -133,6 +137,7 @@ export const updateDemand = async (id, data) => {
 
 export const deleteDemand = async (id) => {
   const demandId = Number(id);
+  if (hasDemandDatabase()) return deleteD1Demand(demandId);
   if (isDataService()) {
     const { affectedRows } = await tidb('/demands/{id}', { method: 'DELETE', params: { id: demandId } });
     return affectedRows > 0 ? { id: demandId } : null;
@@ -148,4 +153,18 @@ export const deleteDemand = async (id) => {
   dbUnavailable();
   const [result] = await pool.query('DELETE FROM room_demands WHERE id = ?', [demandId]);
   return result.affectedRows > 0 ? { id: demandId } : null;
+};
+
+export const getDemandById = async (id) => {
+  const demandId = Number(id);
+  if (hasDemandDatabase()) return getD1Demand(demandId);
+  if (isDataService()) {
+    const { rows } = await tidb('/demands/{id}', { method: 'GET', params: { id: demandId } });
+    return rows[0] || null;
+  }
+  if ((!isReady || isMockMode || !pool) && !isWorkers) {
+    return getDemands().find((d) => d.id === demandId) || null;
+  }
+  const [rows] = await pool.query('SELECT * FROM room_demands WHERE id = ?', [demandId]);
+  return rows[0] || null;
 };

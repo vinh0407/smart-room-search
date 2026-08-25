@@ -4,6 +4,7 @@ import tls from 'node:tls';
 import app from './server.js';
 import { corsHeaders, checkAuth, handleUpload, handleDelete } from './cloudinary.js';
 import { setConfig as setTiDBConfig } from './config/tidbDataService.js';
+import { setDemandDatabase } from './config/d1DemandStore.js';
 
 // workerd (nodejs_compat) chưa hỗ trợ một số option của tls.connect
 // (checkServerIdentity, rejectUnauthorized=false...). mysql2 luôn truyền
@@ -25,6 +26,7 @@ const expressHandler = httpServerHandler(server);
 export default {
   async fetch(request, env, ctx) {
     setTiDBConfig(env);
+    setDemandDatabase(env);
     const url = new URL(request.url);
     const isOptions = request.method === 'OPTIONS';
     const isUpload = request.method === 'POST' && url.pathname === '/api/upload';

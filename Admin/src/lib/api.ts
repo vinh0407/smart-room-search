@@ -1,8 +1,37 @@
 import axios from 'axios';
 
-function normalizeApiBase(url: string): string {
+export interface ApiPreset {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+}
+
+export const API_PRESETS: ApiPreset[] = [
+  {
+    id: 'local_tidb',
+    name: 'BE Local (Express + TiDB / MySQL)',
+    url: 'http://localhost:4000/api',
+    description: 'Chạy BE Express local kết nối database TiDB Cloud / MySQL',
+  },
+  {
+    id: 'vite_proxy',
+    name: 'Vite Proxy nội bộ (/api)',
+    url: '/api',
+    description: 'Chuyển tiếp request qua Vite Dev Server proxy đến BE',
+  },
+  {
+    id: 'cloudflare_tidb',
+    name: 'TiDB Data Service / Cloudflare Worker',
+    url: 'https://smart-room-api.smart-room-backend.workers.dev/api',
+    description: 'Serverless Worker kết nối TiDB Cloud Data Service trực tiếp',
+  },
+];
+
+export function normalizeApiBase(url: string): string {
   const raw = String(url || '').trim().replace(/\/+$/, '');
   if (!raw) return 'http://localhost:4000/api';
+  if (raw === '/api') return '/api';
   return /\/api$/i.test(raw) ? raw : `${raw}/api`;
 }
 
@@ -24,7 +53,7 @@ export function resolveApiBase(): string {
     return normalized;
   }
   return normalizeApiBase(
-    defaultApiBase() || localStorage.getItem('admin_api_base') || ''
+    localStorage.getItem('admin_api_base') || defaultApiBase() || ''
   );
 }
 
@@ -42,7 +71,14 @@ export function setApiBase(url: string): string {
 
 export function getHealthUrl(): string {
   const base = api.defaults.baseURL || '';
+  if (base === '/api') return '/health';
   return base.replace(/\/api$/i, '') + '/health';
+}
+
+export function getDbHealthUrl(): string {
+  const base = api.defaults.baseURL || '';
+  if (base === '/api') return '/api/health/db';
+  return base.replace(/\/api$/i, '') + '/api/health/db';
 }
 
 export function getToken(): string {

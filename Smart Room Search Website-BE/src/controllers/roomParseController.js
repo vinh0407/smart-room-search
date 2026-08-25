@@ -18,11 +18,36 @@ export const parseRooms = async (req, res) => {
 
     const { rooms, updates, warnings, errors } = parseRoomsText(text);
     const existing = await getAllRooms({});
+
+    // Chế độ xem trước (Dry run / Preview) - không lưu vào database
+    if (req.body?.preview === true || req.query?.preview === 'true') {
+      const analyzedRooms = rooms.map((r) => ({
+        ...r,
+        isDuplicate: isDuplicate(existing, r),
+      }));
+
+      return res.status(200).json({
+        summary: {
+          parsedRooms: rooms.length,
+          duplicatesCount: analyzedRooms.filter((r) => r.isDuplicate).length,
+          updatesCount: updates.length,
+        },
+        rooms: analyzedRooms,
+        updates,
+        warnings,
+        errors,
+      });
+    }
+
+    const isExplicitSelection = Array.isArray(req.body?.rooms) && req.body.rooms.length > 0;
+    const roomsToProcess = isExplicitSelection ? req.body.rooms : rooms;
+    const allowDuplicates = req.body?.allowDuplicates === true || isExplicitSelection;
+
     const created = [];
     const skipped = [];
 
-    for (const room of rooms) {
-      if (isDuplicate(existing, room)) {
+    for (const room of roomsToProcess) {
+      if (!allowDuplicates && isDuplicate(existing, room)) {
         skipped.push(room.title);
         continue;
       }
@@ -31,7 +56,7 @@ export const parseRooms = async (req, res) => {
         created.push({ id: saved.id, title: saved.title });
       } catch (error) {
         console.error('[rooms/parse] create failed:', room.title, error);
-        errors.push(`Không tạo được phòng '${room.title}'`);
+        errors.push(`Không tạo được phòng '${room.title}': ${error.message}`);
       }
     }
 
@@ -52,7 +77,7 @@ export const parseRooms = async (req, res) => {
 
     return res.status(200).json({
       summary: {
-        parsedRooms: rooms.length,
+        parsedRooms: roomsToProcess.length,
         created: created.length,
         skippedDuplicates: skipped.length,
         updatesApplied: appliedUpdates.length,

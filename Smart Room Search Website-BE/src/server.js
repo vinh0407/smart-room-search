@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import multer from 'multer';
@@ -20,6 +20,7 @@ import {
   addRoom,
   editRoom,
   removeRoom,
+  bulkRemoveRooms,
   changeRoomStatus,
   stats,
   getRoomsVersion,
@@ -42,6 +43,8 @@ import { parseRooms } from './controllers/roomParseController.js';
 import {
   listDemands,
   addDemand,
+  getDemand,
+  parseDemand,
   editDemand,
   removeDemand,
 } from './controllers/demandController.js';
@@ -292,6 +295,18 @@ app.delete(
   removeRoom
 );
 
+app.post(
+  '/api/rooms/bulk-delete',
+  authenticate,
+  bulkRemoveRooms
+);
+
+app.delete(
+  '/api/rooms',
+  authenticate,
+  bulkRemoveRooms
+);
+
 app.put(
   '/api/rooms/:id/status',
   authenticate,
@@ -372,6 +387,8 @@ app.get(
 
 // Public
 app.get('/api/demands', listDemands);
+app.get('/api/demands/:id', getDemand);
+app.post('/api/demands/parse', parseDemand);
 
 app.post('/api/demands', addDemand);
 

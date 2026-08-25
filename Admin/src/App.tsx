@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +19,7 @@ function useAppData() {
   const [demands, setDemands] = useState<Demand[]>([]);
   const [stats, setStats] = useState<RoomStats | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const knownDemandIds = useRef<Set<number> | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -44,6 +46,39 @@ function useAppData() {
     reload();
   }, [reload]);
 
+  // Admin needs to know when a visitor has just submitted a demand.
+  // This only refreshes the demand list; it does not reload the page.
+  useEffect(() => {
+    let active = true;
+
+    const checkNewDemands = async () => {
+      try {
+        const { data } = await api.get('/demands');
+        const next = Array.isArray(data) ? data : data?.data || [];
+        if (!active) return;
+
+        const nextIds = new Set(next.map((d: Demand) => d.id));
+        if (knownDemandIds.current) {
+          const newItems = next.filter((d: Demand) => !knownDemandIds.current?.has(d.id));
+          newItems.forEach((d: Demand) => {
+            toast.info(`Nhu cầu phòng mới: ${d.full_name}${d.district ? ` — ${d.district}` : ''}`);
+          });
+        }
+        knownDemandIds.current = nextIds;
+        setDemands(next);
+      } catch {
+        // The normal reload button/settings screen already reports connection issues.
+      }
+    };
+
+    checkNewDemands();
+    const timer = window.setInterval(checkNewDemands, 10000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
   return { rooms, tenants, history, demands, stats, reload, loaded };
 }
 
@@ -67,6 +102,12 @@ export default function App() {
     if (reloadKey > 0) reload();
   }, [reloadKey, reload]);
 
+  const [seenDemandIds, setSeenDemandIds] = useState<Set<number>>(() => new Set());
+  const unseenDemandCount = demands.filter((d) => !seenDemandIds.has(d.id)).length;
+  const markDemandsSeen = useCallback(() => {
+    setSeenDemandIds(new Set(demands.map((d) => d.id)));
+  }, [demands]);
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
@@ -74,7 +115,11 @@ export default function App() {
         path="*"
         element={
           <RequireAuth>
-            <Layout onRefresh={refresh}>
+            <Layout
+              onRefresh={refresh}
+              newDemandCount={unseenDemandCount}
+              onOpenDemands={markDemandsSeen}
+            >
               <Routes>
                 <Route
                   path="/dashboard"

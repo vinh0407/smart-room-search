@@ -5,6 +5,7 @@ import {
   createRoom,
   updateRoom,
   deleteRoom,
+  bulkDeleteRooms,
   updateRoomStatus,
   getRoomStats,
   incrementRoomViews,
@@ -85,6 +86,20 @@ export const removeRoom = async (req, res) => {
   } catch (error) {
     console.error('[rooms] delete failed:', error);
     return res.status(500).json({ message: 'Lỗi khi xóa phòng' });
+  }
+};
+
+export const bulkRemoveRooms = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'Danh sách ID phòng cần xóa không hợp lệ' });
+    }
+    const result = await bulkDeleteRooms(ids);
+    return res.status(200).json({ message: `Đã xóa ${result.count} phòng thành công`, count: result.count });
+  } catch (error) {
+    console.error('[rooms] bulk delete failed:', error);
+    return res.status(500).json({ message: 'Lỗi khi xóa nhiều phòng' });
   }
 };
 

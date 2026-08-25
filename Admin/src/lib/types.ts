@@ -101,12 +101,54 @@ export interface Demand {
   id: number;
   full_name: string;
   phone: string;
-  gender: string;
-  district: string;
-  max_price: number;
-  people_count: number;
-  note: string;
+  gender?: string | null;
+  district?: string | null;
+  room_type?: string | null;
+  min_price?: number | null;
+  max_price?: number | null;
+  min_area?: number | null;
+  max_area?: number | null;
+  people_count?: number | null;
+  bedroom_count?: number | null;
+  air_conditioner?: boolean | null;
+  washing_machine?: boolean | null;
+  private_wc?: boolean | null;
+  kitchen?: boolean | null;
+  parking?: boolean | null;
+  full_furniture?: boolean | null;
+  furniture_list?: string[];
+  max_distance?: string | null;
+  preferred_location?: string | null;
+  move_in_date?: string | null;
+  special_requirements?: string | null;
+  note?: string;
+  status?: string;
   created_at?: string;
+}
+
+export interface DemandParsedData {
+  room_type: string | null;
+  district: string | null;
+  min_price: number | null;
+  max_price: number | null;
+  min_area: number | null;
+  max_area: number | null;
+  people_count: number | null;
+  bedroom_count: number | null;
+  air_conditioner: boolean | null;
+  washing_machine: boolean | null;
+  private_wc: boolean | null;
+  kitchen: boolean | null;
+  parking: boolean | null;
+  full_furniture: boolean | null;
+  furniture_list: string[];
+  max_distance: string | null;
+  preferred_location: string | null;
+  move_in_date: string | null;
+  special_requirements: string | null;
+  full_name: string | null;
+  phone: string | null;
+  note: string;
 }
 
 export interface RoomStats {

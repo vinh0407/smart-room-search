@@ -103,6 +103,14 @@ interface Demand {
   created_at?: string;
 }
 
+const asDemandList = (payload: unknown): Demand[] => {
+  if (Array.isArray(payload)) return payload as Demand[];
+  if (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: Demand[] }).data;
+  }
+  return [];
+};
+
 interface Room {
   id: number;
   name: string;
@@ -994,6 +1002,8 @@ export default function App() {
     Set<number>
   >(new Set());
   const [showDemandModal, setShowDemandModal] = useState(false);
+  const [showDemandMenu, setShowDemandMenu] = useState(false);
+  const [showDemandListModal, setShowDemandListModal] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [demandForm, setDemandForm] = useState({
     full_name: "",
@@ -1004,7 +1014,30 @@ export default function App() {
     people_count: "1",
     note: "",
   });
+  const [demandSubmitting, setDemandSubmitting] = useState(false);
+  const [demandError, setDemandError] = useState("");
+  const [demandsLoading, setDemandsLoading] = useState(true);
+  const [demandsError, setDemandsError] = useState("");
+  const [demandInputMode, setDemandInputMode] = useState<"form" | "text">("form");
+  const [demandText, setDemandText] = useState("");
   const headerRef = useRef<HTMLDivElement>(null);
+
+  const loadDemands = useCallback(async () => {
+    setDemandsLoading(true);
+    setDemandsError("");
+    try {
+      const { data } = await api.get("/demands");
+      setDemands(asDemandList(data));
+    } catch (error) {
+      setDemandsError(
+        error instanceof Error
+          ? error.message
+          : "Không thể tải danh sách nhu cầu phòng"
+      );
+    } finally {
+      setDemandsLoading(false);
+    }
+  }, []);
 
   // Dark mode
   useEffect(() => {
@@ -1057,14 +1090,12 @@ export default function App() {
 
     loadRooms();
 
-    api.get("/demands").then(({ data }) => {
-      if (isMounted) setDemands(data);
-    }).catch(() => {});
+    loadDemands();
 
     return () => {
       isMounted = false;
     };
-  }, [roomsReloadKey]);
+  }, [roomsReloadKey, loadDemands]);
 
   // Load chi tiết phòng độc lập từ API — không phụ thuộc list.
   // Fix: /rooms/:id truy cập trực tiếp (F5, link chia sẻ) hoặc phòng
@@ -1225,10 +1256,52 @@ export default function App() {
       people_count: Number(demandForm.people_count || 1),
       note: demandForm.note.trim(),
     };
-    await api.post("/demands", payload);
-    const { data } = await api.get("/demands");
-    setDemands(data);
-    setShowDemandModal(false);
+    setDemandSubmitting(true);
+    setDemandError("");
+    try {
+      const { data } = await api.post("/demands", payload);
+      const created = data?.data as Demand | undefined;
+      if (!data?.success || !created) {
+        throw new Error(data?.message || "Không thể gửi nhu cầu phòng");
+      }
+      setDemands((previous) => [created, ...previous.filter((item) => item.id !== created.id)]);
+      void loadDemands();
+      setShowDemandModal(false);
+    } catch (error) {
+      setDemandError(error instanceof Error ? error.message : "Gửi nhu cầu thất bại. Vui lòng thử lại.");
+    } finally {
+      setDemandSubmitting(false);
+    }
+  };
+
+  const submitDemandFromText = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!demandText.trim()) {
+      setDemandError("Vui lòng nhập nội dung nhu cầu phòng");
+      return;
+    }
+    setDemandSubmitting(true);
+    setDemandError("");
+    try {
+      const { data } = await api.post("/demands/parse", { text: demandText });
+      if (data?.success && data.data) {
+        // Submit the parsed demand
+        const createdResponse = await api.post("/demands", data.data);
+        const created = createdResponse.data?.data as Demand | undefined;
+        if (!createdResponse.data?.success || !created) {
+          throw new Error(createdResponse.data?.message || "Không thể gửi nhu cầu phòng");
+        }
+        setDemands((previous) => [created, ...previous.filter((item) => item.id !== created.id)]);
+        void loadDemands();
+        setShowDemandModal(false);
+      } else {
+        setDemandError(data?.message || "Không thể phân tích nhu cầu phòng");
+      }
+    } catch (error) {
+      setDemandError(error instanceof Error ? error.message : "Phân tích nhu cầu thất bại. Vui lòng thử lại.");
+    } finally {
+      setDemandSubmitting(false);
+    }
   };
 
 const handleContact = useCallback((room: Room) => {
@@ -1337,7 +1410,7 @@ const goHome = () => {
               Danh sách phòng
             </button>
             <button
-              onClick={() => setShowDemandModal(true)}
+              onClick={() => setShowDemandMenu(true)}
               className="rounded-lg px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               Nhu cầu phòng
@@ -1408,7 +1481,7 @@ const goHome = () => {
               </button>
               <button
                 onClick={() => {
-                  setShowDemandModal(true);
+                  setShowDemandMenu(true);
                   setMobileMenu(false);
                 }}
                 className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-foreground hover:bg-muted"
@@ -2042,43 +2115,6 @@ const goHome = () => {
         </div>
       </div>
 
-      {/* Nhu cầu tìm phòng */}
-      <div className="mx-auto max-w-7xl px-4 py-8 border-t border-border mt-8">
-        <h2 className="text-lg font-extrabold text-foreground mb-4">Nhu cầu tìm phòng</h2>
-        <p className="text-sm text-muted-foreground mb-4">Đăng nhu cầu để chủ trọ liên hệ bạn</p>
-
-        <div className="mb-6 rounded-2xl border border-border bg-card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <p className="font-semibold text-foreground">Bạn đang cần tìm phòng?</p>
-            <p className="text-sm text-muted-foreground">Bấm để mở biểu mẫu nhu cầu phòng cho chủ trọ liên hệ.</p>
-          </div>
-          <button
-            onClick={() => setShowDemandModal(true)}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white hover:opacity-90 transition-opacity"
-          >
-            Mở biểu mẫu nhu cầu phòng
-          </button>
-        </div>
-
-        {/* Danh sách nhu cầu theo khu vực */}
-        {demands.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {demands.map((d) => (
-              <div key={d.id} className="rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-primary">{d.district || "Chưa xác định"}</span>
-                  {d.max_price > 0 && <span className="text-xs text-muted-foreground">≤ {Number(d.max_price).toLocaleString("vi-VN")} VNĐ</span>}
-                </div>
-                <p className="text-sm font-semibold text-foreground">{d.full_name} {d.gender ? `(${d.gender})` : ''}</p>
-                <p className="text-xs text-muted-foreground">{d.people_count || 1} người • {d.phone}</p>
-                {d.created_at && <p className="text-[11px] text-muted-foreground mt-1">Đăng lúc: {d.created_at}</p>}
-                {d.note && <p className="text-xs text-muted-foreground mt-1 italic">{d.note}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Mobile filter sheet */}
       <AnimatePresence>
         {showFilters && (
@@ -2708,13 +2744,88 @@ const goHome = () => {
       </AnimatePresence>
 
       <AnimatePresence>
+        {showDemandMenu && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowDemandMenu(false)}
+          >
+            <motion.div
+              initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-2xl"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-extrabold text-foreground">Nhu cầu phòng</h2>
+                <button onClick={() => setShowDemandMenu(false)} className="rounded-full p-2 hover:bg-muted" aria-label="Đóng"><X size={17} /></button>
+              </div>
+              <div className="grid gap-2">
+                <button
+                  onClick={() => { setShowDemandMenu(false); setShowDemandListModal(true); void loadDemands(); }}
+                  className="rounded-xl border border-border px-4 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted"
+                >
+                  Xem danh sách nhu cầu <span className="ml-1 text-xs text-muted-foreground">({demands.length})</span>
+                </button>
+                <button
+                  onClick={() => { setShowDemandMenu(false); setShowDemandModal(true); }}
+                  className="rounded-xl bg-primary px-4 py-3 text-left text-sm font-bold text-white hover:opacity-90"
+                >
+                  Tạo nhu cầu phòng
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDemandListModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowDemandListModal(false)}
+          >
+            <motion.div
+              initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-3xl border border-border bg-card p-5 shadow-2xl"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-extrabold text-foreground">Danh sách nhu cầu phòng</h2>
+                  <p className="text-sm text-muted-foreground">Số điện thoại chỉ hiển thị trong admin.</p>
+                </div>
+                <button onClick={() => setShowDemandListModal(false)} className="rounded-full p-2 hover:bg-muted" aria-label="Đóng"><X size={18} /></button>
+              </div>
+              <div className="min-h-0 space-y-2 overflow-y-auto pr-1">
+                {demandsLoading && <p className="rounded-xl bg-muted p-4 text-center text-sm text-muted-foreground">Đang tải nhu cầu...</p>}
+                {demandsError && !demandsLoading && <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-center text-sm text-rose-700"><p>{demandsError}</p><button onClick={loadDemands} className="mt-2 underline">Thử lại</button></div>}
+                {!demandsLoading && !demandsError && demands.length === 0 && <p className="rounded-xl bg-muted p-5 text-center text-sm text-muted-foreground">Chưa có nhu cầu phòng nào.</p>}
+                {!demandsLoading && !demandsError && demands.map((d) => (
+                  <article key={d.id} className="rounded-xl border border-border p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="text-sm text-foreground">{d.district || 'Chưa xác định khu vực'}</strong>
+                      {d.max_price > 0 && <span className="text-xs font-semibold text-primary">≤ {Number(d.max_price).toLocaleString('vi-VN')} VNĐ</span>}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{d.people_count || 1} người{d.gender ? ` · ${d.gender}` : ''}</p>
+                    {d.note && <p className="mt-1 text-sm text-foreground">{d.note}</p>}
+                  </article>
+                ))}
+              </div>
+              <button onClick={() => { setShowDemandListModal(false); setShowDemandModal(true); }} className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">Tạo nhu cầu phòng</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {showDemandModal && (
           <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowDemandModal(false)}
+            onClick={() => { setShowDemandModal(false); setDemandError(""); }}
           >
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -2728,31 +2839,86 @@ const goHome = () => {
                   <h2 className="text-lg font-extrabold text-foreground">Biểu mẫu nhu cầu phòng</h2>
                   <p className="text-sm text-muted-foreground">Điền nhu cầu để chủ trọ liên hệ bạn.</p>
                 </div>
-                <button onClick={() => setShowDemandModal(false)} className="rounded-full p-2 hover:bg-muted">
+                <button onClick={() => { setShowDemandModal(false); setDemandError(""); }} className="rounded-full p-2 hover:bg-muted">
                   <X size={18} />
                 </button>
               </div>
-              <form onSubmit={submitDemand} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input value={demandForm.full_name} onChange={(e) => setDemandForm((s) => ({ ...s, full_name: e.target.value }))} placeholder="Họ tên *" required className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                <input value={demandForm.phone} onChange={(e) => setDemandForm((s) => ({ ...s, phone: e.target.value }))} placeholder="Số điện thoại *" required className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                <select value={demandForm.gender} onChange={(e) => setDemandForm((s) => ({ ...s, gender: e.target.value }))} className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm">
-                  <option value="">Giới tính</option>
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
-                </select>
-                <select value={demandForm.district} onChange={(e) => setDemandForm((s) => ({ ...s, district: e.target.value }))} className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm">
-                  <option value="">Khu vực mong muốn</option>
-                  {DISTRICTS.filter((d) => d !== "Tất cả").map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-                <input value={demandForm.max_price} onChange={(e) => setDemandForm((s) => ({ ...s, max_price: e.target.value }))} type="number" placeholder="Giá mong muốn tối đa" className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                <input value={demandForm.people_count} onChange={(e) => setDemandForm((s) => ({ ...s, people_count: e.target.value }))} type="number" min="1" placeholder="Số người ở" className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                <textarea value={demandForm.note} onChange={(e) => setDemandForm((s) => ({ ...s, note: e.target.value }))} placeholder="Nhu cầu phòng" rows={4} className="sm:col-span-2 rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                <div className="sm:col-span-2 flex justify-end gap-2">
-                  <button type="button" onClick={() => setShowDemandModal(false)} className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-muted-foreground">Đóng</button>
-                  <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">Gửi nhu cầu</button>
+              {demandError && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
+                  {demandError}
                 </div>
-              </form>
+              )}
+              <div className="mb-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDemandInputMode("form")}
+                  className={`flex-1 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    demandInputMode === "form"
+                      ? "bg-primary text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  📋 Nhập form
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDemandInputMode("text")}
+                  className={`flex-1 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    demandInputMode === "text"
+                      ? "bg-primary text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  🤖 Nhập tự do (AI phân tích)
+                </button>
+              </div>
+              {demandInputMode === "form" && (
+                <form onSubmit={submitDemand} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input value={demandForm.full_name} onChange={(e) => setDemandForm((s) => ({ ...s, full_name: e.target.value }))} placeholder="Họ tên *" required className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
+                  <input value={demandForm.phone} onChange={(e) => setDemandForm((s) => ({ ...s, phone: e.target.value }))} placeholder="Số điện thoại *" required className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
+                  <select value={demandForm.gender} onChange={(e) => setDemandForm((s) => ({ ...s, gender: e.target.value }))} className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm">
+                    <option value="">Giới tính</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                  <select value={demandForm.district} onChange={(e) => setDemandForm((s) => ({ ...s, district: e.target.value }))} className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm">
+                    <option value="">Khu vực mong muốn</option>
+                    {DISTRICTS.filter((d) => d !== "Tất cả").map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <input value={demandForm.max_price} onChange={(e) => setDemandForm((s) => ({ ...s, max_price: e.target.value }))} type="number" placeholder="Giá mong muốn tối đa" className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
+                  <input value={demandForm.people_count} onChange={(e) => setDemandForm((s) => ({ ...s, people_count: e.target.value }))} type="number" min="1" placeholder="Số người ở" className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
+                  <textarea value={demandForm.note} onChange={(e) => setDemandForm((s) => ({ ...s, note: e.target.value }))} placeholder="Nhu cầu phòng" rows={4} className="sm:col-span-2 rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
+                  <div className="sm:col-span-2 flex justify-end gap-2">
+                    <button type="button" onClick={() => { setShowDemandModal(false); setDemandError(""); }} className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-muted-foreground">Đóng</button>
+                    <button type="submit" disabled={demandSubmitting} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                      {demandSubmitting ? "Đang gửi..." : "Gửi nhu cầu"}
+                    </button>
+                  </div>
+                </form>
+              )}
+              {demandInputMode === "text" && (
+                <form onSubmit={submitDemandFromText} className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Nhập nhu cầu phòng bằng văn bản tự do, ví dụ:
+                    <br />
+                    <span className="text-primary">"Cần phòng Q12 giá 2-4 triệu, 20m2, 2 người, nhận tháng 9"</span>
+                  </p>
+                  <textarea
+                    value={demandText}
+                    onChange={(e) => setDemandText(e.target.value)}
+                    placeholder="Ví dụ: Tôi cần phòng ở Quận 12 khoảng 2 đến 4 triệu, diện tích từ 20m2, 2 người ở, có chỗ để xe và muốn chuyển vào đầu tháng 9."
+                    rows={6}
+                    className="w-full rounded-xl border border-border bg-input-background px-3 py-2 text-sm resize-none"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => { setShowDemandModal(false); setDemandError(""); setDemandText(""); }} className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-muted-foreground">Đóng</button>
+                    <button type="submit" disabled={demandSubmitting} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                      {demandSubmitting ? "Đang phân tích..." : "Phân tích & Gửi"}
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </motion.div>
         )}
