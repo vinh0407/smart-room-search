@@ -57,5 +57,9 @@ uploads/
 .DS_Store
 Thumbs.db
 
-# Cache
+# Cache & Deploy Tools
 .cache/
+.vercel/
+**/.vercel/
+.gradle/
+**/.gradle/
