@@ -34,7 +34,7 @@
 
 | Bản | File | Kích thước |
 |---|---|---|
-| Smart Room Search v1.0 | [**SmartRoomSearch-v1.0.apk**](https://github.com/vinh0407/smart-room-search/raw/main/releases/SmartRoomSearch-v1.0.apk) | ~26 MB |
+| Smart Room Search v1.0 | [**SmartRoomSearch-v1.0.apk**](https://github.com/vinh0407/smart-room-search/raw/main/APK/SmartRoomSearch-v1.0.apk) | ~27 MB |
 
 App Android (native **Kotlin + Jetpack Compose**) gồm đầy đủ:
 
@@ -137,7 +137,7 @@ App Android (native **Kotlin + Jetpack Compose**) gồm đầy đủ:
 │   ├── src/                         # Login, Dashboard, Rooms, Tenants, TenantHistory, Demands, Settings
 │   ├── vercel.json                  # SPA rewrite
 │   └── android/                     # App admin (Capacitor)
-└── releases/                        # APK bản phát hành
+└── APK/                             # APK bản phát hành
 ```
 
 ---
@@ -246,4 +246,4 @@ node scripts/migrate-to-mysql.js
 - Website: https://smart-room-search.vercel.app
 - Admin Web: https://smart-room-admin-ccyw8rtp6-v-c621.vercel.app
 - API: https://smart-room-api.smart-room-backend.workers.dev
-- APK: [SmartRoomSearch-v1.0.apk](https://github.com/vinh0407/smart-room-search/raw/main/releases/SmartRoomSearch-v1.0.apk)
+- APK: [SmartRoomSearch-v1.0.apk](https://github.com/vinh0407/smart-room-search/raw/main/APK/SmartRoomSearch-v1.0.apk)
