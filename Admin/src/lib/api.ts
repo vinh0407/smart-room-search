@@ -7,41 +7,39 @@ export interface ApiPreset {
   description: string;
 }
 
+export const CLOUD_API_URL = 'https://smart-room-api.smart-room-backend.workers.dev/api';
+
 export const API_PRESETS: ApiPreset[] = [
   {
+    id: 'cloudflare_tidb',
+    name: '⭐ Cloudflare Server (Live Cloud / TiDB)',
+    url: CLOUD_API_URL,
+    description: 'Serverless Worker kết nối trực tiếp cơ sở dữ liệu đám mây TiDB Cloud (Mặc định)',
+  },
+  {
     id: 'local_tidb',
-    name: 'BE Local (Express + TiDB / MySQL)',
+    name: 'BE Local (Express + MySQL)',
     url: 'http://localhost:4000/api',
-    description: 'Chạy BE Express local kết nối database TiDB Cloud / MySQL',
+    description: 'Chạy BE Express cục bộ trên máy',
   },
   {
     id: 'vite_proxy',
     name: 'Vite Proxy nội bộ (/api)',
     url: '/api',
-    description: 'Chuyển tiếp request qua Vite Dev Server proxy đến BE',
-  },
-  {
-    id: 'cloudflare_tidb',
-    name: 'TiDB Data Service / Cloudflare Worker',
-    url: 'https://smart-room-api.smart-room-backend.workers.dev/api',
-    description: 'Serverless Worker kết nối TiDB Cloud Data Service trực tiếp',
+    description: 'Chuyển tiếp request qua Vite proxy',
   },
 ];
 
 export function normalizeApiBase(url: string): string {
   const raw = String(url || '').trim().replace(/\/+$/, '');
-  if (!raw) return 'http://localhost:4000/api';
+  if (!raw) return CLOUD_API_URL;
   if (raw === '/api') return '/api';
   return /\/api$/i.test(raw) ? raw : `${raw}/api`;
 }
 
 function defaultApiBase(): string {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL as string;
-  const host = window.location.hostname;
-  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
-  return isLocal
-    ? 'http://localhost:4000/api'
-    : 'https://smart-room-api.smart-room-backend.workers.dev/api';
+  return CLOUD_API_URL;
 }
 
 export function resolveApiBase(): string {
@@ -52,9 +50,12 @@ export function resolveApiBase(): string {
     localStorage.setItem('admin_api_base', normalized);
     return normalized;
   }
-  return normalizeApiBase(
-    localStorage.getItem('admin_api_base') || defaultApiBase() || ''
-  );
+  const saved = localStorage.getItem('admin_api_base');
+  // Nếu chưa lưu hoặc đang lưu localhost cũ, mặc định dùng Cloudflare Live Server
+  if (!saved || saved.includes('localhost') || saved === '/api') {
+    return defaultApiBase();
+  }
+  return normalizeApiBase(saved);
 }
 
 export const api = axios.create({
