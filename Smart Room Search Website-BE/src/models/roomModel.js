@@ -377,26 +377,41 @@ export const updateRoom = async (id, roomData) => {
   const roomId = Number(id);
 
   if (isDataService()) {
-    const fields = [
-      'title', 'description', 'address', 'price', 'area', 'status',
-      'images', 'electricity', 'water', 'internet', 'serviceFee', 'maxPeople',
-      'district', 'city', 'lat', 'lng', 'amenities', 'phone', 'zaloLink',
-      'views', 'contacts', 'isFeatured', 'isNew', 'isCheap', 'rating',
-    ];
-    const body = {};
-    for (const key of fields) {
-      const value = roomData[key];
-      if (value === undefined) {
-        body[key] = null;
-      } else if (key === 'images' || key === 'amenities') {
-        body[key] = JSON.stringify(Array.isArray(value) ? value : []);
-      } else if (key === 'isFeatured' || key === 'isNew' || key === 'isCheap') {
-        body[key] = value ? 1 : 0;
-      } else {
-        body[key] = value;
-      }
-    }
-    if (!fields.some((k) => roomData[k] !== undefined)) return null;
+    const existing = await getRoomById(roomId);
+    if (!existing) return null;
+    const merged = {
+      ...existing,
+      ...roomData,
+      images: roomData.images !== undefined ? roomData.images : existing.images,
+      amenities: roomData.amenities !== undefined ? roomData.amenities : existing.amenities,
+    };
+    const body = {
+      title: merged.title,
+      description: merged.description || '',
+      address: merged.address,
+      price: Number(merged.price || 0),
+      area: Number(merged.area || 0),
+      status: merged.status || 'available',
+      images: JSON.stringify(Array.isArray(merged.images) ? merged.images : []),
+      electricity: Number(merged.electricity ?? 3500),
+      water: Number(merged.water ?? 150000),
+      internet: Number(merged.internet ?? 100000),
+      serviceFee: Number(merged.serviceFee ?? 200000),
+      maxPeople: Number(merged.maxPeople ?? 2),
+      district: merged.district || 'Quận 1',
+      city: merged.city || 'TP.HCM',
+      lat: Number(merged.lat != null && !isNaN(merged.lat) ? merged.lat : 10.7731),
+      lng: Number(merged.lng != null && !isNaN(merged.lng) ? merged.lng : 106.6952),
+      amenities: JSON.stringify(Array.isArray(merged.amenities) ? merged.amenities : []),
+      phone: merged.phone || '0901234567',
+      zaloLink: merged.zaloLink || 'https://zalo.me/0901234567',
+      views: Number(merged.views ?? 0),
+      contacts: Number(merged.contacts ?? 0),
+      isFeatured: merged.isFeatured ? 1 : 0,
+      isNew: merged.isNew ? 1 : 0,
+      isCheap: merged.isCheap ? 1 : 0,
+      rating: Number(merged.rating ?? 4.5),
+    };
     await tidb('/rooms/{id}', { method: 'PUT', params: { id: roomId }, body });
     updateRoomsLastModified();
     return getRoomById(roomId);
@@ -410,8 +425,8 @@ export const updateRoom = async (id, roomData) => {
     rooms[index] = {
       ...rooms[index],
       ...roomData,
-      images: roomData.images || rooms[index].images,
-      amenities: roomData.amenities || rooms[index].amenities,
+      images: roomData.images !== undefined ? roomData.images : rooms[index].images,
+      amenities: roomData.amenities !== undefined ? roomData.amenities : rooms[index].amenities,
       updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
     };
 
@@ -471,7 +486,8 @@ export const updateRoom = async (id, roomData) => {
 
     updates.push(`${dbColumn} = ?`);
     if (key === 'images' || key === 'amenities') {
-      values.push(JSON.stringify(value));
+      const arr = Array.isArray(value) ? value : (typeof value === 'string' && value.startsWith('[') ? JSON.parse(value) : []);
+      values.push(JSON.stringify(arr));
     } else if (
       key === 'price' ||
       key === 'area' ||
@@ -480,13 +496,14 @@ export const updateRoom = async (id, roomData) => {
       key === 'internet' ||
       key === 'serviceFee' ||
       key === 'maxPeople' ||
-      key === 'lat' ||
-      key === 'lng' ||
       key === 'views' ||
       key === 'contacts' ||
       key === 'rating'
     ) {
-      values.push(Number(value));
+      values.push(Number(value || 0));
+    } else if (key === 'lat' || key === 'lng') {
+      const fallback = key === 'lat' ? 10.7731 : 106.6952;
+      values.push(Number(value != null && !isNaN(value) ? value : fallback));
     } else if (key === 'isFeatured' || key === 'isNew' || key === 'isCheap') {
       values.push(value ? 1 : 0);
     } else {

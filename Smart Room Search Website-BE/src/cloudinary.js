@@ -37,7 +37,7 @@ export const corsHeaders = (request) => {
   };
 };
 
-export const checkAuth = (request) => {
+export const checkAuth = (request, env) => {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response(
@@ -46,7 +46,8 @@ export const checkAuth = (request) => {
     );
   }
   try {
-    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET || 'smart-room-secret');
+    const secret = (env && env.JWT_SECRET) || process.env.JWT_SECRET || 'smart-room-secret';
+    jwt.verify(authHeader.split(' ')[1], secret);
     return null;
   } catch {
     return new Response(

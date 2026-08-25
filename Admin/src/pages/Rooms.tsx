@@ -366,9 +366,7 @@ export default function Rooms({ rooms, tenants, reload }: RoomsProps) {
     files.forEach((file) => formPayload.append('images', file));
     setUploading(true);
     try {
-      const { data } = await api.post<{ urls: string[] }>('/upload', formPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.post<{ urls: string[] }>('/upload', formPayload);
       const urls = data.urls || [];
       if (urls.length > 0) {
         const current = form.images

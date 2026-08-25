@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   useState,
   useEffect,
   useRef,
@@ -1285,15 +1285,35 @@ export default function App() {
     try {
       const { data } = await api.post("/demands/parse", { text: demandText });
       if (data?.success && data.data) {
-        // Submit the parsed demand
-        const createdResponse = await api.post("/demands", data.data);
-        const created = createdResponse.data?.data as Demand | undefined;
-        if (!createdResponse.data?.success || !created) {
-          throw new Error(createdResponse.data?.message || "Không thể gửi nhu cầu phòng");
+        const parsed = data.data;
+        const hasFullName = Boolean(parsed.full_name && String(parsed.full_name).trim());
+        const hasPhone = Boolean(parsed.phone && String(parsed.phone).trim());
+
+        if (hasFullName && hasPhone) {
+          // Both name & phone are present -> directly submit
+          const createdResponse = await api.post("/demands", parsed);
+          const created = createdResponse.data?.data as Demand | undefined;
+          if (!createdResponse.data?.success || !created) {
+            throw new Error(createdResponse.data?.message || "Không thể gửi nhu cầu phòng");
+          }
+          setDemands((previous) => [created, ...previous.filter((item) => item.id !== created.id)]);
+          void loadDemands();
+          setShowDemandModal(false);
+        } else {
+          // Pre-fill parsed fields into form and switch to form tab for user to fill missing name/phone
+          setDemandForm((prev) => ({
+            ...prev,
+            full_name: parsed.full_name || prev.full_name,
+            phone: parsed.phone || prev.phone,
+            district: parsed.district || prev.district,
+            max_price: parsed.max_price ? String(parsed.max_price) : prev.max_price,
+            people_count: parsed.people_count ? String(parsed.people_count) : prev.people_count,
+            note: parsed.note || demandText.trim(),
+            gender: parsed.gender || prev.gender,
+          }));
+          setDemandInputMode("form");
+          setDemandError("");
         }
-        setDemands((previous) => [created, ...previous.filter((item) => item.id !== created.id)]);
-        void loadDemands();
-        setShowDemandModal(false);
       } else {
         setDemandError(data?.message || "Không thể phân tích nhu cầu phòng");
       }
