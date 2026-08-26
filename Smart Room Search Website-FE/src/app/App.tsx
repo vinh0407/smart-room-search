@@ -104,10 +104,21 @@ interface Demand {
   created_at?: string;
 }
 
+const sortDemandsNewestFirst = (items: Demand[]) => [...items].sort((a, b) => {
+  const aTime = a.created_at ? Date.parse(a.created_at) : Number.NaN;
+  const bTime = b.created_at ? Date.parse(b.created_at) : Number.NaN;
+
+  if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+    return bTime - aTime;
+  }
+
+  return Number(b.id) - Number(a.id);
+});
+
 const asDemandList = (payload: unknown): Demand[] => {
-  if (Array.isArray(payload)) return payload as Demand[];
+  if (Array.isArray(payload)) return sortDemandsNewestFirst(payload as Demand[]);
   if (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown }).data)) {
-    return (payload as { data: Demand[] }).data;
+    return sortDemandsNewestFirst((payload as { data: Demand[] }).data);
   }
   return [];
 };
@@ -1045,7 +1056,10 @@ export default function App() {
     setDemandsLoading(true);
     setDemandsError("");
     try {
-      const { data } = await api.get("/demands");
+      const { data } = await api.get("/demands", {
+        params: { _ts: Date.now() },
+        headers: { "Cache-Control": "no-cache" },
+      });
       setDemands(asDemandList(data));
     } catch (error) {
       setDemandsError(
@@ -1287,8 +1301,7 @@ export default function App() {
       if (!data?.success || !created) {
         throw new Error(data?.message || "Không thể gửi nhu cầu phòng");
       }
-      setDemands((previous) => [created, ...previous.filter((item) => item.id !== created.id)]);
-      void loadDemands();
+      setDemands((previous) => sortDemandsNewestFirst([created, ...previous.filter((item) => item.id !== created.id)]));
       setShowDemandModal(false);
     } catch (error) {
       setDemandError(error instanceof Error ? error.message : "Gửi nhu cầu thất bại. Vui lòng thử lại.");
@@ -1319,8 +1332,7 @@ export default function App() {
           if (!createdResponse.data?.success || !created) {
             throw new Error(createdResponse.data?.message || "Không thể gửi nhu cầu phòng");
           }
-          setDemands((previous) => [created, ...previous.filter((item) => item.id !== created.id)]);
-          void loadDemands();
+          setDemands((previous) => sortDemandsNewestFirst([created, ...previous.filter((item) => item.id !== created.id)]));
           setShowDemandModal(false);
         } else {
           // Pre-fill parsed fields into form and switch to form tab for user to fill missing name/phone
