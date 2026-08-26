@@ -246,7 +246,7 @@ const INITIAL_BANNERS: Banner[] = [
     image:
       "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1400&h=600&fit=crop&auto=format",
     cta: "Xem phòng ngay",
-    color: "from-orange-600/80 to-orange-900/60",
+    color: "from-emerald-900/80 to-teal-950/55",
   },
   {
     id: 2,
@@ -488,7 +488,7 @@ function RoomCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
       whileTap={{ scale: 0.995 }}
-      className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_8px_30px_rgba(23,35,31,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(23,35,31,0.12)]"
     >
       <a
         href={`/rooms/${room.id}`}
@@ -578,7 +578,7 @@ function RoomCard({
         type="button"
         aria-label={isFavorite ? `Bỏ lưu ${room.name}` : `Lưu ${room.name}`}
         data-favorite={isFavorite}
-        className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/85 text-foreground backdrop-blur-sm transition-all hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90 data-[favorite=true]:bg-red-500 data-[favorite=true]:text-white dark:bg-stone-800/85 dark:text-stone-100 dark:hover:bg-stone-700 dark:data-[favorite=true]:bg-red-500 dark:data-[favorite=true]:text-white"
+        className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/85 text-foreground backdrop-blur-sm transition-all hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90 data-[favorite=true]:bg-red-500 data-[favorite=true]:text-white dark:bg-stone-800/85 dark:text-white dark:hover:bg-stone-700 dark:data-[favorite=true]:bg-red-500 dark:data-[favorite=true]:text-white"
         onClick={() => onToggleFavorite(room.id)}
       >
         <Heart size={16} fill={isFavorite ? "white" : "none"} />
@@ -1641,7 +1641,7 @@ const goHome = () => {
                 </p>
                 <button
                   onClick={() => navigate("/rooms")}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-orange-600 transition-colors shadow-lg"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white hover:brightness-95 transition-all shadow-lg"
                 >
                   {banners[heroSlide].cta}{" "}
                   <ArrowRight size={15} />
@@ -1843,7 +1843,7 @@ const goHome = () => {
               </div>
               <button
                 onClick={requestLocation}
-                className="shrink-0 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-orange-600 transition-colors"
+                className="shrink-0 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white hover:brightness-95 transition-all"
               >
                 Cho phép
               </button>
@@ -2548,7 +2548,7 @@ const goHome = () => {
                       : `https://www.google.com/maps/dir/?api=1&destination=${room.lat},${room.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
+                    className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:brightness-95 transition-all"
                   >
                     <Navigation size={12} /> Chỉ đường
                   </a>
@@ -2611,7 +2611,7 @@ const goHome = () => {
                         <a
                           href={`tel:${room.phone}`}
                           onClick={() => handleContact(room)}
-                          className="flex w-full items-center justify-center gap-3 rounded-lg bg-primary py-3 text-sm font-bold text-white shadow-lg transition-colors hover:bg-orange-600"
+                          className="flex w-full items-center justify-center gap-3 rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-lg transition-all hover:brightness-95"
                         >
                           <Phone size={16} />
                           Gọi chủ trọ
