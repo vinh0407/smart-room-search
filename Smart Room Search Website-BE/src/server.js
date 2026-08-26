@@ -127,6 +127,15 @@ app.get('/', (req, res) => {
    HEALTH CHECK
 ========================= */
 
+app.get(['/api', '/api/'], (req, res) => {
+  res.status(200).json({
+    service: 'smart-room-api',
+    status: 'ok',
+    message: 'Smart Room Search API is running',
+    health: '/api/health',
+  });
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
