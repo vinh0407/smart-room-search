@@ -3,9 +3,10 @@ import { parseDemandText } from '../services/demandParser.js';
 
 const publicDemand = (demand) => ({
   id: demand.id,
+  full_name: demand.full_name || 'Người tìm phòng',
   district: demand.district || null,
   max_price: Number(demand.max_price || 0),
-  people_count: Number(demand.people_count || 1),
+  note: demand.note || null,
   created_at: demand.created_at || null,
 });
 
