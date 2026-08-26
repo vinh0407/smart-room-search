@@ -246,7 +246,7 @@ const INITIAL_BANNERS: Banner[] = [
     image:
       "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1400&h=600&fit=crop&auto=format",
     cta: "Xem phòng ngay",
-    color: "from-emerald-900/80 to-teal-950/55",
+    color: "from-orange-600/80 to-orange-900/60",
   },
   {
     id: 2,
