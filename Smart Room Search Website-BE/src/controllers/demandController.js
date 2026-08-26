@@ -1,16 +1,7 @@
 import { getAllDemands, createDemand, updateDemand, deleteDemand, getDemandById } from '../models/demandModel.js';
 import { parseDemandText } from '../services/demandParser.js';
 
-const publicDemand = (demand) => {
-  return {
-    id: demand.id,
-    district: demand.district || null,
-    max_price: Number(demand.max_price || 0),
-    people_count: Number(demand.people_count || 1),
-    note: demand.note || null,
-    created_at: demand.created_at || null,
-  };
-};
+const publicDemand = (demand) => demand;
 
 const normalizeDemand = (body) => {
   const phone = String(body.phone || '').replace(/\D/g, '');

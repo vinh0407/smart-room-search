@@ -2900,7 +2900,7 @@ const goHome = () => {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 id="demand-list-title" className="text-lg font-extrabold text-foreground">Danh sách nhu cầu phòng</h2>
-                  <p className="text-sm text-muted-foreground">Thông tin liên hệ được bảo mật; khu vực này chỉ hiển thị nhu cầu phù hợp.</p>
+                  <p className="text-sm text-muted-foreground">Các nhu cầu mới nhất từ người đang tìm phòng.</p>
                 </div>
                 <button type="button" onClick={() => setShowDemandListModal(false)} className="rounded-full p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Đóng danh sách nhu cầu"><X size={18} /></button>
               </div>
@@ -2911,16 +2911,13 @@ const goHome = () => {
                 {!demandsLoading && !demandsError && demands.map((d) => (
                   <article key={d.id} className="rounded-xl border border-border p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <strong className="text-sm text-foreground">{d.district || 'Chưa xác định khu vực'}</strong>
+                      <span className="text-xs font-bold text-primary">{d.district || 'Chưa xác định'}</span>
                       {d.max_price > 0 && <span className="text-xs font-semibold text-primary">≤ {Number(d.max_price).toLocaleString('vi-VN')} VNĐ</span>}
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {d.people_count || 1} người
-                    </p>
-                    {d.note && <p className="mt-1 text-sm text-foreground">{d.note}</p>}
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Số điện thoại được quản lý riêng trong admin.
-                    </p>
+                    <p className="text-sm font-semibold text-foreground">{d.full_name} {d.gender ? `(${d.gender})` : ''}</p>
+                    <p className="text-xs text-muted-foreground">{d.people_count || 1} người • {d.phone}</p>
+                    {d.created_at && <p className="text-[11px] text-muted-foreground mt-1">Đăng lúc: {d.created_at}</p>}
+                    {d.note && <p className="text-xs text-muted-foreground mt-1 italic">{d.note}</p>}
                   </article>
                 ))}
               </div>
