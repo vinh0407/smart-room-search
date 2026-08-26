@@ -5,8 +5,8 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 
 import { login, register, me } from './controllers/authController.js';
-import { authenticate } from './middleware/auth.js';
-import { loginRateLimit } from './middleware/rateLimit.js';
+import { authenticate, optionalAuthenticate, requireAdmin } from './middleware/auth.js';
+import { loginRateLimit, demandRateLimit, trackingRateLimit } from './middleware/rateLimit.js';
 
 import {
   validateRoomPayload,
@@ -168,7 +168,7 @@ app.get('/api/health/db', async (req, res) => {
     return res.status(504).json({
       status: 'error',
       database: 'unavailable',
-      message: error.message,
+      message: 'Database không khả dụng',
     });
   }
 });
@@ -208,7 +208,7 @@ app.get('/api/events', (req, res) => {
 
 app.post('/api/login', loginRateLimit, login);
 
-app.post('/api/register', register);
+app.post('/api/register', authenticate, requireAdmin, register);
 
 app.get('/api/me', authenticate, me);
 
@@ -229,6 +229,7 @@ app.use(
 app.post(
   '/api/upload',
   authenticate,
+  requireAdmin,
   upload.array('images', 12),
   (req, res) => {
     if (!req.files || req.files.length === 0) {
@@ -246,6 +247,7 @@ app.post(
 app.delete(
   '/api/upload/:filename',
   authenticate,
+  requireAdmin,
   (req, res) => {
     const ok = deleteUploadFile(req.params.filename);
     if (!ok) {
@@ -278,7 +280,7 @@ app.use((err, req, res, next) => {
 // Version phải đặt trước /api/rooms/:id
 app.get('/api/rooms/version', getRoomsVersion);
 
-app.get('/api/rooms/stats', authenticate, stats);
+app.get('/api/rooms/stats', authenticate, requireAdmin, stats);
 
 app.get('/api/rooms', listRooms);
 
@@ -286,7 +288,7 @@ app.get('/api/rooms/:id', getRoom);
 
 app.post(
   '/api/rooms',
-  authenticate,
+  authenticate, requireAdmin,
   validateRoomPayload,
   addRoom
 );
@@ -294,6 +296,7 @@ app.post(
 app.put(
   '/api/rooms/:id',
   authenticate,
+  requireAdmin,
   validateRoomPayload,
   editRoom
 );
@@ -301,35 +304,41 @@ app.put(
 app.delete(
   '/api/rooms/:id',
   authenticate,
+  requireAdmin,
   removeRoom
 );
 
 app.post(
   '/api/rooms/bulk-delete',
   authenticate,
+  requireAdmin,
   bulkRemoveRooms
 );
 
 app.delete(
   '/api/rooms',
   authenticate,
+  requireAdmin,
   bulkRemoveRooms
 );
 
 app.put(
   '/api/rooms/:id/status',
   authenticate,
+  requireAdmin,
   validateRoomStatus,
   changeRoomStatus
 );
 
 app.post(
   '/api/rooms/:id/view',
+  trackingRateLimit,
   trackView
 );
 
 app.post(
   '/api/rooms/:id/contact',
+  trackingRateLimit,
   trackContact
 );
 
@@ -340,12 +349,14 @@ app.post(
 app.get(
   '/api/tenants',
   authenticate,
+  requireAdmin,
   listTenants
 );
 
 app.post(
   '/api/tenants',
   authenticate,
+  requireAdmin,
   validateTenantPayload,
   addTenant
 );
@@ -353,18 +364,21 @@ app.post(
 app.put(
   '/api/tenants/:id',
   authenticate,
+  requireAdmin,
   editTenant
 );
 
 app.delete(
   '/api/tenants/:id',
   authenticate,
+  requireAdmin,
   removeTenant
 );
 
 app.get(
   '/api/tenant-history',
   authenticate,
+  requireAdmin,
   listTenantHistory
 );
 
@@ -375,18 +389,21 @@ app.get(
 app.post(
   '/api/ai/room-description',
   authenticate,
+  requireAdmin,
   generateRoomDescription
 );
 
 app.post(
   '/api/rooms/parse',
   authenticate,
+  requireAdmin,
   parseRooms
 );
 
 app.get(
   '/api/geocode',
   authenticate,
+  requireAdmin,
   geocodeAddress
 );
 
@@ -395,22 +412,24 @@ app.get(
 ========================= */
 
 // Public
-app.get('/api/demands', listDemands);
-app.get('/api/demands/:id', getDemand);
-app.post('/api/demands/parse', parseDemand);
+app.get('/api/demands', optionalAuthenticate, listDemands);
+app.get('/api/demands/:id', authenticate, requireAdmin, getDemand);
+app.post('/api/demands/parse', demandRateLimit, parseDemand);
 
-app.post('/api/demands', addDemand);
+app.post('/api/demands', demandRateLimit, addDemand);
 
 // Admin
 app.put(
   '/api/demands/:id',
   authenticate,
+  requireAdmin,
   editDemand
 );
 
 app.delete(
   '/api/demands/:id',
   authenticate,
+  requireAdmin,
   removeDemand
 );
 

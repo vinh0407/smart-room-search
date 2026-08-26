@@ -21,7 +21,7 @@ export const getAllDemands = async () => {
   if (hasDemandDatabase()) return listD1Demands();
   if (isDataService()) {
     const { rows } = await tidb('/demands', { method: 'GET' });
-    return rows;
+    return rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }
   if ((!isReady || isMockMode || !pool) && !isWorkers) {
     return getDemands().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));

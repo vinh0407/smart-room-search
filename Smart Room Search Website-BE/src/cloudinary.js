@@ -17,16 +17,13 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB/ảnh
 const MAX_FILES = 12;
 const CLOUDINARY_FOLDER = 'smart-room/rooms';
 
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || '')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-export const corsHeaders = (request) => {
+export const corsHeaders = (request, env) => {
   const origin = request.headers.get('Origin');
+  const allowedOrigins = String(env?.CORS_ORIGIN || process.env.CORS_ORIGIN || '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
   let allowOrigin = '*';
-  if (ALLOWED_ORIGINS.length > 0) {
-    allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  if (allowedOrigins.length > 0) {
+    allowOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
   }
   return {
     'Access-Control-Allow-Origin': allowOrigin,
@@ -42,25 +39,27 @@ export const checkAuth = (request, env) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response(
       JSON.stringify({ message: 'Token không hợp lệ' }),
-      { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) } }
+      { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) } }
     );
   }
   try {
-    const secret = (env && env.JWT_SECRET) || process.env.JWT_SECRET || 'smart-room-secret';
-    jwt.verify(authHeader.split(' ')[1], secret);
+    const secret = String((env && env.JWT_SECRET) || process.env.JWT_SECRET || '').trim();
+    if (!secret) throw new Error('JWT_SECRET chưa được cấu hình');
+    const decoded = jwt.verify(authHeader.split(' ')[1], secret);
+    if (decoded.role !== 'admin') throw new Error('Admin role required');
     return null;
   } catch {
     return new Response(
       JSON.stringify({ message: 'Token không hợp lệ hoặc đã hết hạn' }),
-      { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) } }
+      { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) } }
     );
   }
 };
 
-const jsonError = (request, status, message) =>
+const jsonError = (request, status, message, env) =>
   new Response(JSON.stringify({ message }), {
     status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
   });
 
 const cloudinaryConfig = (env) => ({
@@ -81,7 +80,7 @@ const signParams = (params, apiSecret) => {
 export const handleUpload = async (request, env) => {
   const { cloudName, apiKey, apiSecret } = cloudinaryConfig(env);
   if (!cloudName || !apiKey || !apiSecret) {
-    return jsonError(request, 500, 'Chưa cấu hình Cloudinary (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)');
+    return jsonError(request, 500, 'Chưa cấu hình Cloudinary (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)', env);
   }
 
   try {
@@ -91,19 +90,19 @@ export const handleUpload = async (request, env) => {
       .map(([, value]) => value);
 
     if (files.length === 0) {
-      return jsonError(request, 400, 'Chưa có file ảnh nào được chọn');
+      return jsonError(request, 400, 'Chưa có file ảnh nào được chọn', env);
     }
     if (files.length > MAX_FILES) {
-      return jsonError(request, 400, `Tối đa ${MAX_FILES} ảnh mỗi lần upload`);
+      return jsonError(request, 400, `Tối đa ${MAX_FILES} ảnh mỗi lần upload`, env);
     }
 
     const urls = [];
     for (const file of files) {
       if (!ALLOWED_TYPES[file.type]) {
-        return jsonError(request, 400, 'Chỉ chấp nhận ảnh JPG, PNG, WEBP, GIF, AVIF');
+        return jsonError(request, 400, 'Chỉ chấp nhận ảnh JPG, PNG, WEBP, GIF, AVIF', env);
       }
       if (file.size > MAX_FILE_SIZE) {
-        return jsonError(request, 400, 'Ảnh vượt quá giới hạn 10MB mỗi file');
+        return jsonError(request, 400, 'Ảnh vượt quá giới hạn 10MB mỗi file', env);
       }
 
       const timestamp = Math.floor(Date.now() / 1000);
@@ -124,18 +123,18 @@ export const handleUpload = async (request, env) => {
       const data = await res.json();
       if (!res.ok || !data.secure_url) {
         console.error('[cloudinary] upload failed:', res.status, data?.error?.message || JSON.stringify(data));
-        return jsonError(request, 502, 'Upload ảnh lên Cloudinary thất bại');
+        return jsonError(request, 502, 'Upload ảnh lên Cloudinary thất bại', env);
       }
       urls.push(data.secure_url);
     }
 
     return new Response(JSON.stringify({ urls }), {
       status: 201,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
     });
   } catch (error) {
     console.error('[cloudinary] upload error:', error);
-    return jsonError(request, 500, 'Lỗi khi upload ảnh');
+    return jsonError(request, 500, 'Lỗi khi upload ảnh', env);
   }
 };
 
@@ -158,12 +157,12 @@ export const publicIdFromUrl = (url) => {
 export const handleDelete = async (request, env, target) => {
   const { cloudName, apiKey, apiSecret } = cloudinaryConfig(env);
   if (!cloudName || !apiKey || !apiSecret) {
-    return jsonError(request, 500, 'Chưa cấu hình Cloudinary (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)');
+    return jsonError(request, 500, 'Chưa cấu hình Cloudinary (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)', env);
   }
 
   const publicId = publicIdFromUrl(target) || (target && /^[a-zA-Z0-9_./-]+$/.test(target) ? target : null);
   if (!publicId) {
-    return jsonError(request, 400, 'Chỉ hỗ trợ xóa ảnh Cloudinary (URL res.cloudinary.com hoặc public_id)');
+    return jsonError(request, 400, 'Chỉ hỗ trợ xóa ảnh Cloudinary (URL res.cloudinary.com hoặc public_id)', env);
   }
 
   try {
@@ -184,14 +183,14 @@ export const handleDelete = async (request, env, target) => {
     const data = await res.json();
     if (!res.ok || data.result !== 'ok') {
       console.error('[cloudinary] destroy failed:', res.status, data?.error?.message || data?.result);
-      return jsonError(request, 404, 'Không tìm thấy ảnh');
+      return jsonError(request, 404, 'Không tìm thấy ảnh', env);
     }
     return new Response(JSON.stringify({ message: 'Đã xóa ảnh' }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
     });
   } catch (error) {
     console.error('[cloudinary] destroy error:', error);
-    return jsonError(request, 500, 'Lỗi khi xóa ảnh');
+    return jsonError(request, 500, 'Lỗi khi xóa ảnh', env);
   }
 };

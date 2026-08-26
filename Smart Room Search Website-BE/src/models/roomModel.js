@@ -130,7 +130,7 @@ export const getAllRooms = async (filters = {}) => {
     if (filters.areaMax !== undefined && filters.areaMax !== '' && Number(filters.areaMax) < 100) params.areaMax = Number(filters.areaMax);
     if (filters.search) params.search = filters.search;
     const { rows } = await tidb('/rooms', { method: 'GET', params });
-    return Promise.all(rows.map((row) => syncRoomCoords(row)));
+    return rows.map((row) => mapRow(row));
   }
 
   if ((!isReady || isMockMode || !pool) && !isWorkers) {
@@ -217,7 +217,7 @@ export const getRoomById = async (id) => {
   if (isDataService()) {
     const { rows } = await tidb('/rooms/{id}', { method: 'GET', params: { id } });
     if (!rows[0]) return null;
-    return syncRoomCoords(rows[0]);
+    return mapRow(rows[0]);
   }
 
   if ((!isReady || isMockMode || !pool) && !isWorkers) {
@@ -235,8 +235,9 @@ export const getRoomById = async (id) => {
 };
 
 export const createRoom = async (roomData) => {
-  const rooms = getRooms();
-  const nextId = rooms.length > 0 ? Math.max(...rooms.map((r) => r.id)) + 1 : 1;
+  const isLocalStore = (!isReady || isMockMode || !pool) && !isWorkers;
+  const rooms = isLocalStore ? getRooms() : null;
+  const nextId = isLocalStore && rooms.length > 0 ? Math.max(...rooms.map((r) => r.id)) + 1 : null;
 
   const room = normalize({
     id: nextId,
@@ -312,7 +313,7 @@ export const createRoom = async (roomData) => {
     return { ...finalRoom, lat: finalLat, lng: finalLng, id: insertId };
   }
 
-  if ((!isReady || isMockMode || !pool) && !isWorkers) {
+  if (isLocalStore) {
     const roomToSave = { ...finalRoom, lat: finalLat, lng: finalLng };
     rooms.push(roomToSave);
     saveRooms(rooms);

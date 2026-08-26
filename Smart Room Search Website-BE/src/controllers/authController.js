@@ -2,10 +2,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { isMockMode } from '../config/db.js';
 import { getUserByUsername, createUser } from '../models/userModel.js';
+import { getJwtSecret } from '../config/auth.js';
 
-const { JWT_SECRET = 'smart-room-secret' } = process.env;
-
-const signToken = (user) => jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
+const signToken = (user) => jwt.sign({ id: user.id, username: user.username, role: user.role }, getJwtSecret(), { expiresIn: '8h' });
 
 export const login = async (req, res) => {
   try {

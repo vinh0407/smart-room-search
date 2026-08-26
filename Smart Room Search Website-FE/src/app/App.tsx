@@ -94,8 +94,8 @@ type SortOption = "newest" | "price_asc" | "price_desc" | "area_desc" | "distanc
 
 interface Demand {
   id: number;
-  full_name: string;
-  phone: string;
+  full_name?: string;
+  phone?: string;
   gender?: string | null;
   district?: string | null;
   max_price: number;
@@ -2900,7 +2900,7 @@ const goHome = () => {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 id="demand-list-title" className="text-lg font-extrabold text-foreground">Danh sách nhu cầu phòng</h2>
-                  <p className="text-sm text-muted-foreground">Số điện thoại chỉ hiển thị trong admin.</p>
+                  <p className="text-sm text-muted-foreground">Thông tin liên hệ được bảo mật; khu vực này chỉ hiển thị nhu cầu phù hợp.</p>
                 </div>
                 <button type="button" onClick={() => setShowDemandListModal(false)} className="rounded-full p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Đóng danh sách nhu cầu"><X size={18} /></button>
               </div>

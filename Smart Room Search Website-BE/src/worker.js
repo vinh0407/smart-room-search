@@ -34,7 +34,7 @@ export default {
 
     if (isOptions || isUpload || isDelete) {
       if (isOptions) {
-        return new Response(null, { status: 204, headers: corsHeaders(request) });
+        return new Response(null, { status: 204, headers: corsHeaders(request, env) });
       }
       if (isUpload || isDelete) {
         const authError = checkAuth(request, env);
