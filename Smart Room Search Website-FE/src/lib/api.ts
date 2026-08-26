@@ -2,7 +2,11 @@ import axios from 'axios';
 
 function normalizeApiBase(url: string): string {
   const raw = String(url || '').trim().replace(/\/+$/, '');
-  if (!raw) return '/api';
+  if (!raw) {
+    return import.meta.env.PROD
+      ? 'https://smart-room-api.smart-room-backend.workers.dev/api'
+      : '/api';
+  }
   return /\/api$/i.test(raw) ? raw : `${raw}/api`;
 }
 
