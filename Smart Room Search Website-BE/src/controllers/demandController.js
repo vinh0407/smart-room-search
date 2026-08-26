@@ -2,8 +2,14 @@ import { getAllDemands, createDemand, updateDemand, deleteDemand, getDemandById 
 import { parseDemandText } from '../services/demandParser.js';
 
 const publicDemand = (demand) => {
-  const { phone, ...safeDemand } = demand;
-  return safeDemand;
+  return {
+    id: demand.id,
+    district: demand.district || null,
+    max_price: Number(demand.max_price || 0),
+    people_count: Number(demand.people_count || 1),
+    note: demand.note || null,
+    created_at: demand.created_at || null,
+  };
 };
 
 const normalizeDemand = (body) => {

@@ -2911,14 +2911,11 @@ const goHome = () => {
                 {!demandsLoading && !demandsError && demands.map((d) => (
                   <article key={d.id} className="rounded-xl border border-border p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <strong className="text-sm text-foreground">{d.full_name || 'Người tìm phòng'}</strong>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{d.district || 'Chưa xác định quận/huyện'}</p>
-                      </div>
+                      <strong className="text-sm text-foreground">{d.district || 'Chưa xác định khu vực'}</strong>
                       {d.max_price > 0 && <span className="text-xs font-semibold text-primary">≤ {Number(d.max_price).toLocaleString('vi-VN')} VNĐ</span>}
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {d.people_count || 1} người{d.gender ? ` · ${d.gender}` : ''}
+                      {d.people_count || 1} người
                     </p>
                     {d.note && <p className="mt-1 text-sm text-foreground">{d.note}</p>}
                     <p className="mt-3 text-xs text-muted-foreground">
