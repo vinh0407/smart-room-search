@@ -2917,6 +2917,9 @@ const goHome = () => {
                       </div>
                       {d.max_price > 0 && <span className="text-xs font-semibold text-primary">≤ {Number(d.max_price).toLocaleString('vi-VN')} VNĐ</span>}
                     </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {d.people_count || 1} người{d.gender ? ` · ${d.gender}` : ''}
+                    </p>
                     {d.note && <p className="mt-1 text-sm text-foreground">{d.note}</p>}
                     <p className="mt-3 text-xs text-muted-foreground">
                       Số điện thoại được quản lý riêng trong admin.
