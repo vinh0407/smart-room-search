@@ -2914,7 +2914,7 @@ const goHome = () => {
                       {d.max_price > 0 && <span className="text-xs font-semibold text-primary">≤ {Number(d.max_price).toLocaleString('vi-VN')} VNĐ</span>}
                     </div>
                     <p className="text-sm font-semibold text-foreground">{d.full_name} {d.gender ? `(${d.gender})` : ''}</p>
-                    <p className="text-xs text-muted-foreground">{d.people_count || 1} người • {d.phone}</p>
+                    <p className="text-xs text-muted-foreground">{d.people_count || 1} người</p>
                     {d.created_at && <p className="text-[11px] text-muted-foreground mt-1">Đăng lúc: {d.created_at}</p>}
                     {d.note && <p className="text-xs text-muted-foreground mt-1 italic">{d.note}</p>}
                   </article>

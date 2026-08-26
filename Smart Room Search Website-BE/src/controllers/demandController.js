@@ -1,7 +1,10 @@
 import { getAllDemands, createDemand, updateDemand, deleteDemand, getDemandById } from '../models/demandModel.js';
 import { parseDemandText } from '../services/demandParser.js';
 
-const publicDemand = (demand) => demand;
+const publicDemand = (demand) => {
+  const { phone, ...safeDemand } = demand;
+  return safeDemand;
+};
 
 const normalizeDemand = (body) => {
   const phone = String(body.phone || '').replace(/\D/g, '');
