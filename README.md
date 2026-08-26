@@ -22,7 +22,7 @@
 | Thành phần | URL |
 |---|---|
 |  **Website người thuê** | https://smart-room-search.vercel.app |
-|  **Admin Web** (quản trị) | https://smart-room-admin-ccyw8rtp6-v-c621.vercel.app |
+|  **Admin Web** (quản trị) | https://smart-room-admin.vercel.app |
 |  **Backend API** | https://smart-room-api.smart-room-backend.workers.dev/api |
 |  Health check | https://smart-room-api.smart-room-backend.workers.dev/health |
 
@@ -102,7 +102,7 @@ App Android (native **Kotlin + Jetpack Compose**) gồm đầy đủ:
 | Thành phần | Local (dev) | Production |
 |---|---|---|
 | Website FE | `localhost:5173` (proxy `/api` → 4000) | Vercel — https://smart-room-search.vercel.app |
-| Admin Web | `localhost:5173` | Vercel — https://smart-room-admin-ccyw8rtp6-v-c621.vercel.app |
+| Admin Web | `localhost:5173` | Vercel — https://smart-room-admin.vercel.app |
 | Backend | Node.js Express — `localhost:4000` | Cloudflare Worker — https://smart-room-api.smart-room-backend.workers.dev |
 | Database | TiDB Cloud (MySQL trực tiếp) | TiDB Cloud qua **Data Service** |
 
@@ -244,6 +244,6 @@ node scripts/migrate-to-mysql.js
 
 - GitHub: [vinh0407/smart-room-search](https://github.com/vinh0407/smart-room-search)
 - Website: https://smart-room-search.vercel.app
-- Admin Web: https://smart-room-admin-ccyw8rtp6-v-c621.vercel.app
+- Admin Web: https://smart-room-admin.vercel.app
 - API: https://smart-room-api.smart-room-backend.workers.dev
 - APK: [SmartRoomSearch-v1.0.apk](https://github.com/vinh0407/smart-room-search/raw/main/APK/SmartRoomSearch-v1.0.apk)
