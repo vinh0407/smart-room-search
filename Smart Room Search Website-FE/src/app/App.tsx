@@ -1058,7 +1058,6 @@ export default function App() {
     try {
       const { data } = await api.get("/demands", {
         params: { _ts: Date.now() },
-        headers: { "Cache-Control": "no-cache" },
       });
       setDemands(asDemandList(data));
     } catch (error) {
