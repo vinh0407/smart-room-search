@@ -90,6 +90,7 @@ const RoomMap = lazy(() => import("./components/RoomMap"));
 // ═══════════════════════════════════════════════════════
 type Status = "available" | "rented" | "maintenance";
 type View = "home" | "rooms" | "detail" | "favorites";
+type SortOption = "newest" | "price_asc" | "price_desc" | "area_desc" | "distance";
 
 interface Demand {
   id: number;
@@ -130,14 +131,15 @@ interface Room {
   description: string;
   amenities: string[];
   images: string[];
-  phone: string;
-  zaloLink: string;
+  phone?: string;
+  zaloLink?: string;
   views: number;
   contacts: number;
+  createdAt?: string;
   isFeatured: boolean;
   isNew: boolean;
   isCheap: boolean;
-  rating: number;
+  rating: number | null;
 }
 
 interface Banner {
@@ -297,7 +299,7 @@ const DEFAULT_FILTER: FilterState = {
   areaMax: 100,
   district: "Tất cả",
   amenities: [],
-  status: "all",
+  status: "available",
 };
 
 // ═══════════════════════════════════════════════════════
@@ -348,14 +350,15 @@ const mapApiRoomToRoom = (room: any): Room => ({
   description: room.description || "",
   amenities: Array.isArray(room.amenities) ? room.amenities : [],
   images: Array.isArray(room.images) ? room.images : [],
-  phone: room.phone || "0337244067",
-  zaloLink: room.zaloLink || "https://zalo.me/0337244067",
+  phone: typeof room.phone === "string" && room.phone.trim() ? room.phone.trim() : undefined,
+  zaloLink: typeof room.zaloLink === "string" && room.zaloLink.trim() ? room.zaloLink.trim() : undefined,
   views: Number(room.views ?? 0),
   contacts: Number(room.contacts ?? 0),
+  createdAt: room.created_at || room.createdAt || undefined,
   isFeatured: Boolean(room.isFeatured),
   isNew: Boolean(room.isNew),
   isCheap: Boolean(room.isCheap),
-  rating: Number(room.rating ?? 4.5),
+  rating: room.rating == null || room.rating === "" ? null : Number(room.rating),
 });
 
 const getStatusInfo = (status: Status) => {
@@ -363,19 +366,19 @@ const getStatusInfo = (status: Status) => {
     case "available":
       return {
         label: "Còn trống",
-        bg: "bg-emerald-100 text-emerald-700",
+        bg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
         dot: "bg-emerald-500",
       };
     case "rented":
       return {
         label: "Đã thuê",
-        bg: "bg-red-100 text-red-600",
+        bg: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300",
         dot: "bg-red-500",
       };
     case "maintenance":
       return {
         label: "Bảo trì",
-        bg: "bg-amber-100 text-amber-700",
+        bg: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
         dot: "bg-amber-500",
       };
   }
@@ -438,7 +441,10 @@ function StatusBadge({ status }: { status: Status }) {
   );
 }
 
-function RatingStars({ rating }: { rating: number }) {
+function RatingStars({ rating }: { rating: number | null }) {
+  if (rating == null || !Number.isFinite(rating)) {
+    return <span className="text-[11px] text-muted-foreground">Chưa có đánh giá</span>;
+  }
   return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-500">
       <Star size={11} fill="currentColor" />
@@ -466,133 +472,107 @@ function RoomCard({
   const status = getStatusInfo(room.status);
   const coverImage = room.images[0] || FALLBACK_IMAGE;
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
-      className="group relative flex flex-col bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
-      onClick={() => onView(room.id)}
+      whileTap={{ scale: 0.995 }}
+      className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
     >
-      {/* Image */}
-      <div className="relative h-48 overflow-hidden bg-muted">
-        <img
-          src={coverImage}
-          alt={room.name}
-          loading="lazy"
-          onError={(e) => {
-            if (e.currentTarget.src !== FALLBACK_IMAGE) {
-              e.currentTarget.src = FALLBACK_IMAGE;
-            }
-          }}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        {/* Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-        {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          <StatusBadge status={room.status} />
-          {room.isFeatured && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-white">
-              <Star size={9} fill="white" /> Nổi bật
-            </span>
-          )}
-          {room.isNew && (
-            <span className="inline-flex items-center rounded-full bg-blue-500 px-2.5 py-1 text-[10px] font-bold text-white">
-              Mới
-            </span>
-          )}
-          {room.isCheap && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-bold text-white">
-              <Percent size={9} /> Rẻ
-            </span>
-          )}
-        </div>
-        {/* Heart */}
-        <button
-          className={`absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all ${
-            isFavorite
-              ? "bg-red-500 text-white"
-              : "bg-white/80 text-foreground hover:bg-red-50"
-          }`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(room.id);
-          }}
-        >
-          <Heart
-            size={14}
-            fill={isFavorite ? "white" : "none"}
+      <a
+        href={`/rooms/${room.id}`}
+        aria-label={`Xem chi tiết ${room.name}`}
+        onClick={(event) => {
+          event.preventDefault();
+          onView(room.id);
+        }}
+        className="group/link flex min-h-full flex-1 flex-col outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+      >
+        {/* Image */}
+        <div className="relative h-48 overflow-hidden bg-muted">
+          <img
+            src={coverImage}
+            alt={room.name}
+            loading="lazy"
+            onError={(e) => {
+              if (e.currentTarget.src !== FALLBACK_IMAGE) {
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }
+            }}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover/link:scale-105"
           />
-        </button>
-        {/* Price overlay */}
-        <div className="absolute bottom-3 right-3">
-          <span className="rounded-xl bg-primary px-3 py-1.5 text-sm font-bold text-white shadow-lg">
-            {formatPrice(room.price)}
-            <span className="text-[10px] font-normal opacity-80">
-              /tháng
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+            <StatusBadge status={room.status} />
+            {room.isFeatured && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-white">
+                <Star size={9} fill="white" /> Nổi bật
+              </span>
+            )}
+            {room.isNew && (
+              <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                Mới
+              </span>
+            )}
+            {room.isCheap && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                <Percent size={9} /> Giá tốt
+              </span>
+            )}
+          </div>
+          <div className="absolute bottom-3 right-3">
+            <span className="rounded-lg bg-primary px-3 py-1.5 text-sm font-bold text-white shadow-lg">
+              {formatPrice(room.price)}
+              <span className="text-[10px] font-normal opacity-80">/tháng</span>
             </span>
-          </span>
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="line-clamp-1 text-sm font-bold text-foreground leading-tight">
-          {room.name}
-        </h3>
-        <div className="flex items-start gap-1 text-muted-foreground">
-          <MapPin
-            size={12}
-            className="mt-0.5 shrink-0 text-primary"
-          />
-          <span className="line-clamp-1 text-[11px]">
-            {room.address}
-          </span>
-        </div>
-
-        {/* Stats row */}
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-          {room.area != null && (
-            <span className="flex items-center gap-1">
-              <SlidersHorizontal size={10} /> {room.area}m²
-            </span>
-          )}
-          {room.maxPeople != null && (
-            <span className="flex items-center gap-1">
-              <Users size={10} /> {room.maxPeople} người
-            </span>
-          )}
-          {distance != null && (
-            <span className="flex items-center gap-1 text-primary font-semibold">
-              <Navigation size={10} />{" "}
-              {distance < 1
-                ? `${(distance * 1000).toFixed(0)}m`
-                : `${distance.toFixed(1)}km`}
-            </span>
-          )}
+          </div>
         </div>
 
-        {/* Amenities */}
-        <div className="flex flex-wrap gap-1 mt-auto">
-          {room.amenities.slice(0, 4).map((a) => (
-            <AmenityBadge key={a} id={a} />
-          ))}
-          {room.amenities.length > 4 && (
-            <span className="text-[10px] text-muted-foreground px-1">
-              +{room.amenities.length - 4}
-            </span>
-          )}
-        </div>
+        {/* Info */}
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          <h3 className="line-clamp-1 text-sm font-bold leading-tight text-foreground">
+            {room.name}
+          </h3>
+          <div className="flex items-start gap-1 text-muted-foreground">
+            <MapPin size={12} className="mt-0.5 shrink-0 text-primary" />
+            <span className="line-clamp-1 text-[11px]">{room.address || "Chưa có địa chỉ"}</span>
+          </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border pt-2 mt-1">
-          <RatingStars rating={room.rating} />
-          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <Eye size={10} /> {room.views}
-          </span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+            {room.area != null && (
+              <span className="flex items-center gap-1"><SlidersHorizontal size={10} /> {room.area}m²</span>
+            )}
+            {room.maxPeople != null && (
+              <span className="flex items-center gap-1"><Users size={10} /> {room.maxPeople} người</span>
+            )}
+            {distance != null && (
+              <span className="flex items-center gap-1 font-semibold text-primary"><Navigation size={10} /> {distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(1)}km`}</span>
+            )}
+          </div>
+
+          <div className="mt-auto flex flex-wrap gap-1">
+            {room.amenities.slice(0, 4).map((a) => <AmenityBadge key={a} id={a} />)}
+            {room.amenities.length > 4 && <span className="px-1 text-[10px] text-muted-foreground">+{room.amenities.length - 4}</span>}
+          </div>
+
+          <div className="mt-1 flex items-center justify-between border-t border-border pt-2">
+            <RatingStars rating={room.rating} />
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><Eye size={10} /> {room.views}</span>
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </a>
+
+      {/* Favorite stays outside the link so the two actions remain independent. */}
+      <button
+        type="button"
+        aria-label={isFavorite ? `Bỏ lưu ${room.name}` : `Lưu ${room.name}`}
+        data-favorite={isFavorite}
+        className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/85 text-foreground backdrop-blur-sm transition-all hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90 data-[favorite=true]:bg-red-500 data-[favorite=true]:text-white dark:bg-stone-800/85 dark:text-stone-100 dark:hover:bg-stone-700 dark:data-[favorite=true]:bg-red-500 dark:data-[favorite=true]:text-white"
+        onClick={() => onToggleFavorite(room.id)}
+      >
+        <Heart size={16} fill={isFavorite ? "white" : "none"} />
+      </button>
+    </motion.article>
   );
 }
 
@@ -613,6 +593,17 @@ function ImageGallery({
   const galleryImages =
     images.length > 0 ? images : [FALLBACK_IMAGE];
   const currentImage = galleryImages[active] || FALLBACK_IMAGE;
+  const fullscreenCloseRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    fullscreenCloseRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFullscreen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [fullscreen]);
 
   return (
     <>
@@ -635,7 +626,9 @@ function ImageGallery({
           {galleryImages.length > 1 && (
             <>
               <button
-                className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
+                type="button"
+                aria-label="Xem ảnh trước"
+                className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 onClick={() =>
                   setActive(
                     (a) =>
@@ -646,7 +639,9 @@ function ImageGallery({
                 <ChevronLeft size={18} />
               </button>
               <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
+                type="button"
+                aria-label="Xem ảnh tiếp theo"
+                className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 onClick={() =>
                   setActive((a) => (a + 1) % galleryImages.length)
                 }
@@ -657,7 +652,9 @@ function ImageGallery({
           )}
           {/* Fullscreen */}
           <button
-            className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60"
+            type="button"
+            aria-label="Mở ảnh toàn màn hình"
+            className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             onClick={() => setFullscreen(true)}
           >
             <Maximize2 size={14} />
@@ -667,6 +664,9 @@ function ImageGallery({
             {galleryImages.map((_, i) => (
               <button
                 key={i}
+                type="button"
+                aria-label={`Xem ảnh ${i + 1}`}
+                aria-current={i === active ? "true" : undefined}
                 className={`rounded-full transition-all ${i === active ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/50"}`}
                 onClick={() => setActive(i)}
               />
@@ -679,8 +679,11 @@ function ImageGallery({
             {galleryImages.map((src, i) => (
               <button
                 key={i}
+                type="button"
+                aria-label={`Xem ảnh ${i + 1}`}
+                aria-current={i === active ? "true" : undefined}
                 onClick={() => setActive(i)}
-                className={`relative shrink-0 h-14 w-20 overflow-hidden rounded-lg transition-all ${
+                className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   i === active
                     ? "ring-2 ring-primary"
                     : "opacity-60 hover:opacity-100"
@@ -701,6 +704,9 @@ function ImageGallery({
       <AnimatePresence>
         {fullscreen && (
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Ảnh phòng ${name}`}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -708,7 +714,10 @@ function ImageGallery({
             onClick={() => setFullscreen(false)}
           >
             <button
-              className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              ref={fullscreenCloseRef}
+              type="button"
+              aria-label="Đóng ảnh toàn màn hình"
+              className="absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               onClick={() => setFullscreen(false)}
             >
               <X size={20} />
@@ -723,6 +732,9 @@ function ImageGallery({
               {galleryImages.map((_, i) => (
                 <button
                   key={i}
+                  type="button"
+                  aria-label={`Xem ảnh ${i + 1}`}
+                  aria-current={i === active ? "true" : undefined}
                   onClick={(e) => {
                     e.stopPropagation();
                     setActive(i);
@@ -765,7 +777,9 @@ function FilterPanel({
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-foreground">Bộ lọc</h3>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Đóng bộ lọc"
             className="text-muted-foreground hover:text-foreground"
           >
             <X size={18} />
@@ -787,6 +801,7 @@ function FilterPanel({
           ].map(([v, l]) => (
             <button
               key={v}
+              type="button"
               onClick={() => onChange({ status: v })}
               className={`rounded-full px-3 py-1 text-xs font-semibold border transition-all ${
                 filters.status === v
@@ -841,6 +856,7 @@ function FilterPanel({
           ].map(([v, l]) => (
             <button
               key={String(v)}
+              type="button"
               onClick={() =>
                 onChange({ priceMax: v as number })
               }
@@ -885,7 +901,7 @@ function FilterPanel({
           onChange={(e) =>
             onChange({ district: e.target.value })
           }
-          className="w-full rounded-xl border border-border bg-input-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full rounded-xl border border-border bg-input-background px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 sm:text-sm"
         >
           {DISTRICTS.map((d) => (
             <option key={d} value={d}>
@@ -904,6 +920,7 @@ function FilterPanel({
           {Object.entries(AMENITY_META).map(([id, meta]) => (
             <button
               key={id}
+              type="button"
               onClick={() => toggleAmenity(id)}
               className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
                 filters.amenities.includes(id)
@@ -923,6 +940,7 @@ function FilterPanel({
       </div>
 
       <button
+        type="button"
         onClick={onReset}
         className="w-full rounded-xl border border-border py-2 text-sm font-semibold text-muted-foreground hover:border-primary hover:text-primary transition-colors"
       >
@@ -956,6 +974,7 @@ export default function App() {
 
   const [filters, setFilters] =
     useState<FilterState>(DEFAULT_FILTER);
+  const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [favorites, setFavorites] = useState<Set<number>>(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem("sr_favorites") || "[]"));
@@ -963,6 +982,7 @@ export default function App() {
       return new Set();
     }
   });
+  const [favoriteNotice, setFavoriteNotice] = useState("");
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("sr_dark") === "1",
   );
@@ -1004,7 +1024,6 @@ export default function App() {
   const [showDemandModal, setShowDemandModal] = useState(false);
   const [showDemandMenu, setShowDemandMenu] = useState(false);
   const [showDemandListModal, setShowDemandListModal] = useState(false);
-  const [showMapModal, setShowMapModal] = useState(false);
   const [demandForm, setDemandForm] = useState({
     full_name: "",
     phone: "",
@@ -1167,11 +1186,10 @@ export default function App() {
         r.price > filters.priceMax
       )
         return false;
-      if (r.area != null && r.area < filters.areaMin) return false;
+      if (filters.areaMin > 0 && (r.area == null || r.area < filters.areaMin)) return false;
       if (
-        r.area != null &&
         filters.areaMax < 100 &&
-        r.area > filters.areaMax
+        (r.area == null || r.area > filters.areaMax)
       )
         return false;
       if (
@@ -1206,13 +1224,19 @@ export default function App() {
   }, [rooms, userLocation]);
 
   const sortedFilteredRooms = useMemo(() => {
-    if (!userLocation || Object.keys(distances).length === 0) return filteredRooms;
     return [...filteredRooms].sort((a, b) => {
-      const da = distances[a.id] ?? Infinity;
-      const db = distances[b.id] ?? Infinity;
-      return da - db;
+      if (sortOption === "price_asc") return a.price - b.price;
+      if (sortOption === "price_desc") return b.price - a.price;
+      if (sortOption === "area_desc") return (b.area ?? -1) - (a.area ?? -1);
+      if (sortOption === "distance") {
+        return (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity);
+      }
+      if (a.createdAt && b.createdAt) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      return b.id - a.id;
     });
-  }, [filteredRooms, distances, userLocation]);
+  }, [filteredRooms, distances, sortOption]);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -1229,21 +1253,20 @@ export default function App() {
   const viewRoom = useCallback((id: number) => {
     navigate(`/rooms/${id}`);
     setShowFilters(false);
-    setRooms((rs) =>
-      rs.map((r) =>
-        r.id === id ? { ...r, views: r.views + 1 } : r,
-      ),
-    );
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [navigate]);
 
   const toggleFavorite = useCallback((id: number) => {
+    const roomName = rooms.find((room) => room.id === id)?.name || "phòng này";
+    const wasFavorite = favorites.has(id);
     setFavorites((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      wasFavorite ? next.delete(id) : next.add(id);
       return next;
     });
-  }, []);
+    setFavoriteNotice(wasFavorite ? `Đã bỏ lưu ${roomName}` : `Đã lưu ${roomName}`);
+    window.setTimeout(() => setFavoriteNotice(""), 1800);
+  }, [favorites, rooms]);
 
   const submitDemand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1336,13 +1359,27 @@ const handleContact = useCallback((room: Room) => {
     api.post(`/rooms/${room.id}/contact`).catch(() => {});
   }, []);
 
-const updateFilter = useCallback(
+  const updateFilter = useCallback(
     (partial: Partial<FilterState>) =>
-      setFilters((f) => ({ ...f, ...partial })),
+      setFilters((current) => {
+        const next = { ...current, ...partial };
+        if (next.priceMin > next.priceMax) {
+          if (partial.priceMin !== undefined) next.priceMax = next.priceMin;
+          else next.priceMin = next.priceMax;
+        }
+        if (next.areaMin > next.areaMax) {
+          if (partial.areaMin !== undefined) next.areaMax = next.areaMin;
+          else next.areaMin = next.areaMax;
+        }
+        return next;
+      }),
     [],
   );
 
-  const resetFilters = useCallback(() => setFilters(DEFAULT_FILTER), []);
+  const resetFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTER);
+    setSortOption("newest");
+  }, []);
 
 const goHome = () => {
     navigate("/");
@@ -1378,6 +1415,8 @@ const goHome = () => {
         <div className="flex h-14 items-center gap-3">
           {/* Logo */}
           <button
+            type="button"
+            aria-label="Về trang chủ Trọ Xịn"
             className="flex shrink-0 items-center gap-2"
             onClick={goHome}
           >
@@ -1391,13 +1430,14 @@ const goHome = () => {
 
           {/* Search */}
           <div className="flex-1 max-w-lg mx-auto">
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-input-background px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+            <label className="flex items-center gap-2 rounded-xl border border-border bg-input-background px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
               <Search
                 size={15}
                 className="shrink-0 text-muted-foreground"
               />
-<input
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              <span className="sr-only">Tìm kiếm phòng</span>
+              <input
+                className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-sm"
                 placeholder="Tìm quận, địa chỉ, tên phòng..."
                 value={filters.search}
                 onChange={(e) => {
@@ -1410,7 +1450,10 @@ const goHome = () => {
               />
               {filters.search && (
                 <button
+                  type="button"
+                  aria-label="Xóa tìm kiếm"
                   onClick={() => updateFilter({ search: "" })}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <X
                     size={13}
@@ -1418,18 +1461,22 @@ const goHome = () => {
                   />
                 </button>
               )}
-            </div>
+            </label>
           </div>
 
           {/* Nav */}
           <nav className="hidden md:flex items-center gap-1">
             <button
+              type="button"
+              aria-label="Mở danh sách phòng"
               onClick={() => navigate("/rooms")}
               className="rounded-lg px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               Danh sách phòng
             </button>
             <button
+              type="button"
+              aria-label="Mở form nhu cầu phòng"
               onClick={() => setShowDemandMenu(true)}
               className="rounded-lg px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
@@ -1440,8 +1487,10 @@ const goHome = () => {
           {/* Actions */}
           <div className="flex items-center gap-2 ml-auto md:ml-0">
             <button
+              type="button"
+              aria-label="Mở phòng đã thích"
               onClick={() => navigate("/favorites")}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors relative"
+              className="relative flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               title="Phòng đã thích"
             >
               <Heart size={15} className={favorites.size > 0 ? "text-red-500" : "text-muted-foreground"} fill={favorites.size > 0 ? "currentColor" : "none"} />
@@ -1450,19 +1499,11 @@ const goHome = () => {
               )}
             </button>
             <button
-              onClick={() => {
-                requestLocation();
-                navigate("/rooms");
-                setShowMapModal(true);
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors"
-              title="Xem bản đồ phòng"
-            >
-              <Navigation size={15} className={userLocation ? "text-primary" : "text-muted-foreground"} />
-            </button>
-            <button
+              type="button"
+              aria-label={darkMode ? "Tắt chế độ tối" : "Bật chế độ tối"}
+              aria-pressed={darkMode}
               onClick={() => setDarkMode((d) => !d)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {darkMode ? (
                 <Sun size={15} />
@@ -1471,7 +1512,10 @@ const goHome = () => {
               )}
             </button>
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors md:hidden"
+              type="button"
+              aria-label={mobileMenu ? "Đóng menu" : "Mở menu"}
+              aria-expanded={mobileMenu}
+              className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
               onClick={() => setMobileMenu((m) => !m)}
             >
               <Menu size={16} />
@@ -1521,6 +1565,7 @@ const goHome = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      <span className="sr-only" aria-live="polite" aria-atomic="true">{favoriteNotice}</span>
     </header>
   );
 
@@ -1953,7 +1998,7 @@ const goHome = () => {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <a
                   href="tel:0337244067"
-                  className="flex items-center gap-2 hover:text-primary transition-colors"
+                  className="flex items-center gap-2 transition-colors hover:text-primary"
                 >
                   <Phone size={13} /> 0337244067
                 </a>
@@ -1961,7 +2006,7 @@ const goHome = () => {
                   href="https://zalo.me/0337244067"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-primary transition-colors"
+                  className="flex items-center gap-2 transition-colors hover:text-primary"
                 >
                   <MessageCircle size={13} /> Zalo: Thế Vinh
                 </a>
@@ -1984,98 +2029,107 @@ const goHome = () => {
     <div className="pt-14 min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-6">
         {/* Top bar */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-5 flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-xl font-extrabold text-foreground">
-              Danh sách phòng
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+              Smart Room Search · TP.HCM
+            </p>
+            <h1 id="rooms-heading" className="text-3xl font-extrabold tracking-[-0.03em] text-foreground sm:text-4xl">
+              Tìm nơi ở hợp với bạn
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {sortedFilteredRooms.length} phòng phù hợp
+            <p className="mt-1 text-sm text-muted-foreground" aria-live="polite">
+              {sortedFilteredRooms.length} phòng phù hợp với tiêu chí hiện tại
             </p>
           </div>
-          <button
-            onClick={() => setShowFilters((f) => !f)}
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${
-              showFilters
-                ? "bg-primary border-primary text-white"
-                : "border-border text-foreground hover:border-primary"
-            }`}
-          >
-            <SlidersHorizontal size={15} />
-            Bộ lọc
-            {(filters.amenities.length > 0 ||
-              filters.district !== "Tất cả" ||
-              filters.status !== "all") && (
-              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">
-                {filters.amenities.length +
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              aria-expanded={showFilters}
+              onClick={() => setShowFilters((f) => !f)}
+              className={`flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                showFilters
+                  ? "border-primary bg-primary text-white"
+                  : "border-border bg-card text-foreground hover:border-primary"
+              }`}
+            >
+              <SlidersHorizontal size={15} />
+              Bộ lọc
+              {(() => {
+                const count = filters.amenities.length +
                   (filters.district !== "Tất cả" ? 1 : 0) +
-                  (filters.status !== "all" ? 1 : 0)}
-              </span>
-            )}
-          </button>
+                  (filters.status !== "available" ? 1 : 0) +
+                  (filters.priceMin > 0 ? 1 : 0) +
+                  (filters.priceMax < 15000000 ? 1 : 0) +
+                  (filters.areaMin > 0 ? 1 : 0) +
+                  (filters.areaMax < 100 ? 1 : 0) +
+                  (filters.search ? 1 : 0);
+                return count > 0 ? (
+                  <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1 text-[10px]">
+                    {count}
+                  </span>
+                ) : null;
+              })()}
+            </button>
+            <label className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+              <span className="hidden sm:inline">Sắp xếp</span>
+              <select
+                aria-label="Sắp xếp danh sách phòng"
+                value={sortOption}
+                onChange={(event) => setSortOption(event.target.value as SortOption)}
+                className="bg-transparent font-semibold text-foreground outline-none"
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="price_asc">Giá thấp → cao</option>
+                <option value="price_desc">Giá cao → thấp</option>
+                <option value="area_desc">Diện tích lớn</option>
+                <option value="distance" disabled={!userLocation}>Gần tôi</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div className="flex gap-6">
           {/* Sidebar filter */}
           <AnimatePresence>
             {showFilters && (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 280, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                className="hidden lg:block shrink-0 overflow-hidden"
+              <motion.aside
+                initial={{ x: -12, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -12, opacity: 0 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                aria-label="Bộ lọc danh sách phòng"
+                className="hidden w-[280px] shrink-0 overflow-visible lg:block"
               >
-                <div className="w-[280px] rounded-2xl border border-border bg-card p-5 sticky top-20">
+                <div className="sticky top-20 w-[280px] rounded-lg border border-border bg-card p-5">
                   <FilterPanel
                     filters={filters}
                     onChange={updateFilter}
                     onReset={resetFilters}
                   />
                 </div>
-              </motion.div>
+              </motion.aside>
             )}
           </AnimatePresence>
 
-          {/* Map */}
-          <div className="mb-6">
-            <Suspense fallback={<div className="h-[360px] bg-muted rounded-2xl animate-pulse" />}>
-              <RoomMap
-                rooms={sortedFilteredRooms.filter((r) => r.lat && r.lng).map((r) => ({
-                  id: r.id,
-                  title: r.name,
-                  lat: r.lat!,
-                  lng: r.lng!,
-                  price: r.price,
-                  address: r.address,
-                  area: r.area,
-                  district: r.district,
-                }))}
-                userLat={userLocation?.lat}
-                userLng={userLocation?.lng}
-                radiusKm={5}
-                onViewRoom={(id) => {
-                  if (rooms.find((r) => r.id === id)) viewRoom(id);
-                }}
-              />
-            </Suspense>
-          </div>
-
+          <main className="min-w-0 flex-1" aria-labelledby="rooms-heading">
           {/* Grid */}
           <div className="flex-1">
             {roomsLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                </div>
-                <h3 className="font-bold text-foreground">
-                  Đang tải phòng...
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Xin chờ một chút, hệ thống đang khởi động dữ liệu
-                </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Đang tải danh sách phòng" role="status">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="overflow-hidden rounded-lg border border-border bg-card">
+                    <div className="h-48 animate-pulse bg-muted" />
+                    <div className="space-y-3 p-4">
+                      <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                      <div className="h-3 w-full animate-pulse rounded bg-muted" />
+                      <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+                      <div className="h-8 w-full animate-pulse rounded bg-muted" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : roomsError ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="flex flex-col items-center justify-center py-20 text-center" role="alert">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
                   <AlertCircle size={28} className="text-foreground" />
                 </div>
@@ -2093,7 +2147,7 @@ const goHome = () => {
                 </button>
               </div>
             ) : sortedFilteredRooms.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="flex flex-col items-center justify-center py-20 text-center" role="status">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
                   <Search
                     size={28}
@@ -2101,7 +2155,7 @@ const goHome = () => {
                   />
                 </div>
                 <h3 className="font-bold text-foreground">
-                  Không tìm thấy phòng
+                  Không tìm thấy phòng phù hợp
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
@@ -2110,7 +2164,7 @@ const goHome = () => {
                   onClick={resetFilters}
                   className="mt-4 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white"
                 >
-                  Xóa bộ lọc
+                  Xóa bộ lọc và xem tất cả phòng
                 </button>
               </div>
             ) : (
@@ -2132,6 +2186,7 @@ const goHome = () => {
               </motion.div>
             )}
           </div>
+          </main>
         </div>
       </div>
 
@@ -2147,7 +2202,10 @@ const goHome = () => {
               onClick={() => setShowFilters(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-card p-6 pb-safe max-h-[85vh] overflow-y-auto lg:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Bộ lọc phòng"
+              className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-xl bg-card p-6 pb-safe lg:hidden"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -2537,24 +2595,33 @@ const goHome = () => {
 
                   {room.status === "available" && (
                     <div className="mt-4 space-y-2">
-                      <a
-                        href={`tel:${room.phone}`}
-                        onClick={() => handleContact(room)}
-                        className="flex w-full items-center justify-center gap-3 rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-orange-600 transition-colors shadow-lg"
-                      >
-                        <Phone size={16} />
-                        Gọi ngay · {room.phone}
-                      </a>
-                      <a
-                        href={room.zaloLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => handleContact(room)}
-                        className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-blue-500 bg-blue-50 py-3 text-sm font-bold text-blue-600 hover:bg-blue-100 transition-colors dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-400"
-                      >
-                        <MessageCircle size={16} />
-                        Chat Zalo
-                      </a>
+                      {room.phone ? (
+                        <a
+                          href={`tel:${room.phone}`}
+                          onClick={() => handleContact(room)}
+                          className="flex w-full items-center justify-center gap-3 rounded-lg bg-primary py-3 text-sm font-bold text-white shadow-lg transition-colors hover:bg-orange-600"
+                        >
+                          <Phone size={16} />
+                          Gọi chủ trọ
+                        </a>
+                      ) : null}
+                      {room.zaloLink ? (
+                        <a
+                          href={room.zaloLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleContact(room)}
+                          className="flex w-full items-center justify-center gap-3 rounded-lg border border-primary/30 bg-primary/5 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary/10"
+                        >
+                          <MessageCircle size={16} />
+                          Chat Zalo
+                        </a>
+                      ) : null}
+                      {!room.phone && !room.zaloLink && (
+                        <p className="rounded-lg bg-muted p-3 text-center text-xs text-muted-foreground">
+                          Phòng chưa có thông tin liên hệ.
+                        </p>
+                      )}
                       {contactedRooms.has(room.id) && (
                         <p className="text-center text-xs text-emerald-600 flex items-center justify-center gap-1">
                           <CheckCircle size={11} /> Đã liên hệ
@@ -2766,6 +2833,9 @@ const goHome = () => {
       <AnimatePresence>
         {showDemandMenu && (
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="demand-menu-title"
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setShowDemandMenu(false)}
@@ -2776,17 +2846,19 @@ const goHome = () => {
               className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-2xl"
             >
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-extrabold text-foreground">Nhu cầu phòng</h2>
-                <button onClick={() => setShowDemandMenu(false)} className="rounded-full p-2 hover:bg-muted" aria-label="Đóng"><X size={17} /></button>
+                <h2 id="demand-menu-title" className="font-extrabold text-foreground">Nhu cầu phòng</h2>
+                <button type="button" onClick={() => setShowDemandMenu(false)} className="rounded-full p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Đóng menu nhu cầu phòng"><X size={17} /></button>
               </div>
               <div className="grid gap-2">
                 <button
+                  type="button"
                   onClick={() => { setShowDemandMenu(false); setShowDemandListModal(true); void loadDemands(); }}
                   className="rounded-xl border border-border px-4 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted"
                 >
                   Xem danh sách nhu cầu <span className="ml-1 text-xs text-muted-foreground">({demands.length})</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => { setShowDemandMenu(false); setShowDemandModal(true); }}
                   className="rounded-xl bg-primary px-4 py-3 text-left text-sm font-bold text-white hover:opacity-90"
                 >
@@ -2801,6 +2873,9 @@ const goHome = () => {
       <AnimatePresence>
         {showDemandListModal && (
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="demand-list-title"
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setShowDemandListModal(false)}
@@ -2812,14 +2887,14 @@ const goHome = () => {
             >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-extrabold text-foreground">Danh sách nhu cầu phòng</h2>
+                  <h2 id="demand-list-title" className="text-lg font-extrabold text-foreground">Danh sách nhu cầu phòng</h2>
                   <p className="text-sm text-muted-foreground">Số điện thoại chỉ hiển thị trong admin.</p>
                 </div>
-                <button onClick={() => setShowDemandListModal(false)} className="rounded-full p-2 hover:bg-muted" aria-label="Đóng"><X size={18} /></button>
+                <button type="button" onClick={() => setShowDemandListModal(false)} className="rounded-full p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Đóng danh sách nhu cầu"><X size={18} /></button>
               </div>
               <div className="min-h-0 space-y-2 overflow-y-auto pr-1">
                 {demandsLoading && <p className="rounded-xl bg-muted p-4 text-center text-sm text-muted-foreground">Đang tải nhu cầu...</p>}
-                {demandsError && !demandsLoading && <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-center text-sm text-rose-700"><p>{demandsError}</p><button onClick={loadDemands} className="mt-2 underline">Thử lại</button></div>}
+                {demandsError && !demandsLoading && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-center text-sm text-rose-700"><p>{demandsError}</p><button type="button" onClick={loadDemands} className="mt-2 underline">Thử lại</button></div>}
                 {!demandsLoading && !demandsError && demands.length === 0 && <p className="rounded-xl bg-muted p-5 text-center text-sm text-muted-foreground">Chưa có nhu cầu phòng nào.</p>}
                 {!demandsLoading && !demandsError && demands.map((d) => (
                   <article key={d.id} className="rounded-xl border border-border p-3">
@@ -2829,18 +2904,22 @@ const goHome = () => {
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{d.people_count || 1} người{d.gender ? ` · ${d.gender}` : ''}</p>
                     {d.note && <p className="mt-1 text-sm text-foreground">{d.note}</p>}
-                    <a
-                      href="https://zalo.me/0337244067"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white"
-                    >
-                      Liên hệ môi giới
-                    </a>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Liên hệ sẽ được hiển thị khi có thông tin phù hợp.
+                    </p>
                   </article>
                 ))}
               </div>
-              <button onClick={() => { setShowDemandListModal(false); setShowDemandModal(true); }} className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">Tạo nhu cầu phòng</button>
+              <a
+                href="https://zalo.me/0337244067"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowDemandListModal(false)}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <MessageCircle size={16} />
+                Liên hệ để cho thuê phòng
+              </a>
             </motion.div>
           </motion.div>
         )}
@@ -2856,6 +2935,9 @@ const goHome = () => {
             onClick={() => { setShowDemandModal(false); setDemandError(""); }}
           >
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="demand-modal-title"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
@@ -2864,21 +2946,22 @@ const goHome = () => {
             >
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-extrabold text-foreground">Biểu mẫu nhu cầu phòng</h2>
+                  <h2 id="demand-modal-title" className="text-lg font-extrabold text-foreground">Biểu mẫu nhu cầu phòng</h2>
                   <p className="text-sm text-muted-foreground">Điền nhu cầu để chủ trọ liên hệ bạn.</p>
                 </div>
-                <button onClick={() => { setShowDemandModal(false); setDemandError(""); }} className="rounded-full p-2 hover:bg-muted">
+                <button type="button" aria-label="Đóng biểu mẫu nhu cầu phòng" onClick={() => { setShowDemandModal(false); setDemandError(""); }} className="rounded-full p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                   <X size={18} />
                 </button>
               </div>
               {demandError && (
-                <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
+                <div role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
                   {demandError}
                 </div>
               )}
               <div className="mb-4 flex gap-2">
                 <button
                   type="button"
+                  aria-pressed={demandInputMode === "form"}
                   onClick={() => setDemandInputMode("form")}
                   className={`flex-1 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
                     demandInputMode === "form"
@@ -2890,6 +2973,7 @@ const goHome = () => {
                 </button>
                 <button
                   type="button"
+                  aria-pressed={demandInputMode === "text"}
                   onClick={() => setDemandInputMode("text")}
                   className={`flex-1 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
                     demandInputMode === "text"
@@ -2902,21 +2986,21 @@ const goHome = () => {
               </div>
               {demandInputMode === "form" && (
                 <form onSubmit={submitDemand} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input value={demandForm.full_name} onChange={(e) => setDemandForm((s) => ({ ...s, full_name: e.target.value }))} placeholder="Họ tên *" required className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                  <input value={demandForm.phone} onChange={(e) => setDemandForm((s) => ({ ...s, phone: e.target.value }))} placeholder="Số điện thoại *" required className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                  <select value={demandForm.gender} onChange={(e) => setDemandForm((s) => ({ ...s, gender: e.target.value }))} className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm">
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>Họ tên <span aria-hidden="true">*</span></span><input value={demandForm.full_name} onChange={(e) => setDemandForm((s) => ({ ...s, full_name: e.target.value }))} placeholder="Nguyễn Văn A" required className="rounded-xl border border-border bg-input-background px-3 py-2 text-base text-foreground sm:text-sm" /></label>
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>Số điện thoại <span aria-hidden="true">*</span></span><input value={demandForm.phone} onChange={(e) => setDemandForm((s) => ({ ...s, phone: e.target.value }))} type="tel" placeholder="09xxxxxxxx" required className="rounded-xl border border-border bg-input-background px-3 py-2 text-base text-foreground sm:text-sm" /></label>
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>Giới tính</span><select aria-label="Giới tính" value={demandForm.gender} onChange={(e) => setDemandForm((s) => ({ ...s, gender: e.target.value }))} className="rounded-xl border border-border bg-input-background px-3 py-2 text-base text-foreground sm:text-sm">
                     <option value="">Giới tính</option>
                     <option value="Nam">Nam</option>
                     <option value="Nữ">Nữ</option>
                     <option value="Khác">Khác</option>
-                  </select>
-                  <select value={demandForm.district} onChange={(e) => setDemandForm((s) => ({ ...s, district: e.target.value }))} className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm">
+                  </select></label>
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>Khu vực mong muốn</span><select aria-label="Khu vực mong muốn" value={demandForm.district} onChange={(e) => setDemandForm((s) => ({ ...s, district: e.target.value }))} className="rounded-xl border border-border bg-input-background px-3 py-2 text-base text-foreground sm:text-sm">
                     <option value="">Khu vực mong muốn</option>
                     {DISTRICTS.filter((d) => d !== "Tất cả").map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                  <input value={demandForm.max_price} onChange={(e) => setDemandForm((s) => ({ ...s, max_price: e.target.value }))} type="number" placeholder="Giá mong muốn tối đa" className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                  <input value={demandForm.people_count} onChange={(e) => setDemandForm((s) => ({ ...s, people_count: e.target.value }))} type="number" min="1" placeholder="Số người ở" className="rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
-                  <textarea value={demandForm.note} onChange={(e) => setDemandForm((s) => ({ ...s, note: e.target.value }))} placeholder="Nhu cầu phòng" rows={4} className="sm:col-span-2 rounded-xl border border-border bg-input-background px-3 py-2 text-sm" />
+                  </select></label>
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>Giá tối đa mỗi tháng</span><input aria-label="Giá mong muốn tối đa" value={demandForm.max_price} onChange={(e) => setDemandForm((s) => ({ ...s, max_price: e.target.value }))} type="number" min="0" inputMode="numeric" placeholder="Ví dụ: 4000000" className="rounded-xl border border-border bg-input-background px-3 py-2 text-base text-foreground sm:text-sm" /></label>
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>Số người ở</span><input aria-label="Số người ở" value={demandForm.people_count} onChange={(e) => setDemandForm((s) => ({ ...s, people_count: e.target.value }))} type="number" min="1" inputMode="numeric" placeholder="Ví dụ: 2" className="rounded-xl border border-border bg-input-background px-3 py-2 text-base text-foreground sm:text-sm" /></label>
+                  <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>Ghi chú nhu cầu</span><textarea aria-label="Ghi chú nhu cầu phòng" value={demandForm.note} onChange={(e) => setDemandForm((s) => ({ ...s, note: e.target.value }))} placeholder="Tiện ích hoặc thời gian muốn chuyển vào" rows={4} className="rounded-xl border border-border bg-input-background px-3 py-2 text-base text-foreground sm:text-sm" /></label>
                   <div className="sm:col-span-2 flex justify-end gap-2">
                     <button type="button" onClick={() => { setShowDemandModal(false); setDemandError(""); }} className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-muted-foreground">Đóng</button>
                     <button type="submit" disabled={demandSubmitting} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed">
@@ -2937,7 +3021,7 @@ const goHome = () => {
                     onChange={(e) => setDemandText(e.target.value)}
                     placeholder="Ví dụ: Tôi cần phòng ở Quận 12 khoảng 2 đến 4 triệu, diện tích từ 20m2, 2 người ở, có chỗ để xe và muốn chuyển vào đầu tháng 9."
                     rows={6}
-                    className="w-full rounded-xl border border-border bg-input-background px-3 py-2 text-sm resize-none"
+                    className="w-full rounded-xl border border-border bg-input-background px-3 py-2 text-base resize-none sm:text-sm"
                   />
                   <div className="flex justify-end gap-2">
                     <button type="button" onClick={() => { setShowDemandModal(false); setDemandError(""); setDemandText(""); }} className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-muted-foreground">Đóng</button>
@@ -2952,57 +3036,6 @@ const goHome = () => {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showMapModal && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowMapModal(false)}
-          >
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-6xl rounded-3xl border border-border bg-card p-4 shadow-2xl"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-extrabold text-foreground">Bản đồ phòng trọ</h2>
-                  <p className="text-sm text-muted-foreground">Xem danh sách phòng trên bản đồ kèm vị trí của bạn.</p>
-                </div>
-                <button onClick={() => setShowMapModal(false)} className="rounded-full p-2 hover:bg-muted">
-                  <X size={18} />
-                </button>
-              </div>
-              <Suspense fallback={<div className="h-[70vh] rounded-2xl bg-muted animate-pulse" />}>
-                <RoomMap
-                  rooms={sortedFilteredRooms.filter((r) => r.lat && r.lng).map((r) => ({
-                    id: r.id,
-                    title: r.name,
-                    lat: r.lat!,
-                    lng: r.lng!,
-                    price: r.price,
-                    address: r.address,
-                    area: r.area,
-                    district: r.district,
-                  }))}
-                  userLat={userLocation?.lat}
-                  userLng={userLocation?.lng}
-                  radiusKm={5}
-                  height="70vh"
-                  onViewRoom={(id) => {
-                    setShowMapModal(false);
-                    viewRoom(id);
-                  }}
-                />
-              </Suspense>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

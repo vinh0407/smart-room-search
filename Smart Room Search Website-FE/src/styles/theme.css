@@ -2,14 +2,14 @@
 
 :root {
   --font-size: 16px;
-  --font-family: 'Plus Jakarta Sans', sans-serif;
-  --background: #FAFAF9;
+  --font-family: "Avenir Next", "Segoe UI", sans-serif;
+  --background: #F7F7F5;
   --foreground: #1C1917;
   --card: #FFFFFF;
   --card-foreground: #1C1917;
   --popover: #FFFFFF;
   --popover-foreground: #1C1917;
-  --primary: #F97316;
+  --primary: #EA580C;
   --primary-foreground: #FFFFFF;
   --secondary: #FFF7ED;
   --secondary-foreground: #9A3412;
@@ -31,7 +31,7 @@
   --chart-3: #3B82F6;
   --chart-4: #8B5CF6;
   --chart-5: #F43F5E;
-  --radius: 0.875rem;
+  --radius: 0.625rem;
   --sidebar: #1C1917;
   --sidebar-foreground: #F5F5F4;
   --sidebar-primary: #F97316;
